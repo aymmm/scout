@@ -1,896 +1,390 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SCOUT — YouTube Research Tool</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+JP:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg: #0a0a0f;
-    --surface: #111118;
-    --surface2: #1a1a24;
-    --border: #2a2a3a;
-    --accent: #00e5ff;
-    --accent2: #ff3d6b;
-    --text: #e8e8f0;
-    --text-muted: #666680;
-    --text-dim: #444458;
-    --success: #00ff88;
-    --card-bg: #13131e;
-  }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Noto Sans JP', sans-serif;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  /* ── GRID BACKGROUND ── */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
-    background-size: 40px 40px;
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  /* ── HEADER ── */
-  header {
-    position: relative;
-    z-index: 10;
-    padding: 24px 32px 0;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-
-  .logo {
-    display: flex;
-    align-items: baseline;
-    gap: 12px;
-  }
-
-  .logo-main {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(36px, 6vw, 56px);
-    letter-spacing: 0.08em;
-    color: var(--accent);
-    line-height: 1;
-    text-shadow: 0 0 30px rgba(0,229,255,0.4);
-  }
-
-  .logo-sub {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    color: var(--text-muted);
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-  }
-
-  .api-badge {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    padding: 4px 12px;
-    border-radius: 2px;
-    border: 1px solid var(--border);
-    color: var(--text-muted);
-    cursor: pointer;
-    transition: all 0.2s;
-    background: var(--surface);
-    letter-spacing: 0.1em;
-  }
-
-  .api-badge.connected {
-    border-color: var(--success);
-    color: var(--success);
-    text-shadow: 0 0 10px rgba(0,255,136,0.4);
-  }
-
-  .api-badge:hover {
-    border-color: var(--accent);
-    color: var(--accent);
-  }
-
-  /* ── MAIN CONTAINER ── */
-  main {
-    position: relative;
-    z-index: 5;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 32px 24px 80px;
-  }
-
-  /* ── API KEY PANEL ── */
-  .api-panel {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-left: 3px solid var(--accent2);
-    padding: 20px 24px;
-    margin-bottom: 32px;
-    display: none;
-  }
-
-  .api-panel.visible { display: block; }
-
-  .api-panel label {
-    display: block;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 0.15em;
-    color: var(--text-muted);
-    margin-bottom: 10px;
-    text-transform: uppercase;
-  }
-
-  .api-panel-row {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-
-  .api-input {
-    flex: 1;
-    min-width: 200px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    color: var(--text);
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 13px;
-    padding: 10px 14px;
-    outline: none;
-    transition: border-color 0.2s;
-    letter-spacing: 0.05em;
-  }
-
-  .api-input:focus { border-color: var(--accent); }
-
-  .btn-save {
-    background: var(--accent);
-    color: var(--bg);
-    border: none;
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 16px;
-    letter-spacing: 0.1em;
-    padding: 10px 24px;
-    cursor: pointer;
-    transition: all 0.2s;
-    white-space: nowrap;
-  }
-
-  .btn-save:hover {
-    background: #fff;
-    box-shadow: 0 0 20px rgba(0,229,255,0.5);
-  }
-
-  /* ── SEARCH AREA ── */
-  .search-area {
-    margin-bottom: 40px;
-  }
-
-  .search-label {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 0.2em;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    margin-bottom: 12px;
-    display: block;
-  }
-
-  .search-row {
-    display: flex;
-    gap: 0;
-    margin-bottom: 16px;
-  }
-
-  .search-input {
-    flex: 1;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-right: none;
-    color: var(--text);
-    font-family: 'Noto Sans JP', sans-serif;
-    font-size: 15px;
-    padding: 14px 20px;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-
-  .search-input:focus { border-color: var(--accent); }
-  .search-input::placeholder { color: var(--text-dim); }
-
-  .btn-search {
-    background: var(--accent);
-    color: var(--bg);
-    border: none;
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 18px;
-    letter-spacing: 0.12em;
-    padding: 14px 32px;
-    cursor: pointer;
-    transition: all 0.2s;
-    white-space: nowrap;
-  }
-
-  .btn-search:hover {
-    background: #fff;
-    box-shadow: 0 0 30px rgba(0,229,255,0.6);
-  }
-
-  .btn-search:disabled {
-    background: var(--text-dim);
-    cursor: not-allowed;
-    box-shadow: none;
-  }
-
-  /* ── FILTER ROW ── */
-  .filter-row {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    align-items: center;
-  }
-
-  .filter-label {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    color: var(--text-muted);
-    letter-spacing: 0.1em;
-  }
-
-  .filter-btn {
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--text-muted);
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 0.1em;
-    padding: 6px 14px;
-    cursor: pointer;
-    transition: all 0.15s;
-    text-transform: uppercase;
-  }
-
-  .filter-btn:hover, .filter-btn.active {
-    border-color: var(--accent);
-    color: var(--accent);
-    background: rgba(0,229,255,0.08);
-  }
-
-  .result-count {
-    margin-left: auto;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    color: var(--text-muted);
-  }
-
-  /* ── RESULTS GRID ── */
-  .results-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 16px;
-  }
-
-  /* ── VIDEO CARD ── */
-  .video-card {
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    overflow: hidden;
-    transition: all 0.2s;
-    animation: fadeUp 0.3s ease both;
-    cursor: pointer;
-    text-decoration: none;
-    display: block;
-    position: relative;
-  }
-
-  .video-card:hover {
-    border-color: var(--accent);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 30px rgba(0,0,0,0.4), 0 0 0 1px rgba(0,229,255,0.2);
-  }
-
-  .video-card:hover .card-overlay { opacity: 1; }
-
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(16px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .thumb-wrap {
-    position: relative;
-    aspect-ratio: 16/9;
-    overflow: hidden;
-    background: var(--surface2);
-  }
-
-  .thumb-wrap img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-    transition: transform 0.3s;
-  }
-
-  .video-card:hover .thumb-wrap img { transform: scale(1.04); }
-
-  .card-overlay {
-    position: absolute;
-    inset: 0;
-    background: rgba(0,229,255,0.12);
-    opacity: 0;
-    transition: opacity 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .play-icon {
-    width: 44px;
-    height: 44px;
-    background: var(--accent);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .play-icon svg { fill: var(--bg); margin-left: 3px; }
-
-  .duration-badge {
-    position: absolute;
-    bottom: 6px;
-    right: 8px;
-    background: rgba(0,0,0,0.85);
-    color: #fff;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    padding: 2px 6px;
-    letter-spacing: 0.05em;
-  }
-
-  .card-body {
-    padding: 14px 16px 16px;
-  }
-
-  .card-title {
-    font-size: 13px;
-    font-weight: 500;
-    line-height: 1.5;
-    color: var(--text);
-    margin-bottom: 10px;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .card-meta {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    gap: 8px;
-  }
-
-  .card-channel {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
-    color: var(--accent);
-    letter-spacing: 0.05em;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    flex: 1;
-  }
-
-  .card-stats {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 2px;
-    flex-shrink: 0;
-  }
-
-  .stat-views {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    color: var(--text-muted);
-    letter-spacing: 0.05em;
-  }
-
-  .stat-date {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
-    color: var(--text-dim);
-  }
-
-  /* ── MEMO TAG ── */
-  .card-tag-row {
-    margin-top: 10px;
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-  }
-
-  .tag {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 9px;
-    letter-spacing: 0.1em;
-    padding: 3px 8px;
-    border: 1px solid var(--border);
-    color: var(--text-dim);
-    text-transform: uppercase;
-    transition: all 0.15s;
-    cursor: pointer;
-  }
-
-  .tag:hover, .tag.active {
-    border-color: var(--accent2);
-    color: var(--accent2);
-    background: rgba(255,61,107,0.08);
-  }
-
-  /* ── STATE MESSAGES ── */
-  .state-msg {
-    text-align: center;
-    padding: 80px 20px;
-    color: var(--text-dim);
-  }
-
-  .state-msg .icon {
-    font-size: 48px;
-    margin-bottom: 16px;
-    display: block;
-  }
-
-  .state-msg p {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 13px;
-    letter-spacing: 0.1em;
-  }
-
-  .state-msg .hint {
-    margin-top: 8px;
-    font-size: 11px;
-    color: var(--text-dim);
-  }
-
-  /* ── LOADING ── */
-  .loading-wrap {
-    display: none;
-    text-align: center;
-    padding: 60px 20px;
-  }
-
-  .loading-wrap.visible { display: block; }
-
-  .scanner {
-    width: 60px;
-    height: 60px;
-    border: 2px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    margin: 0 auto 20px;
-  }
-
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  .loading-text {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
-    color: var(--accent);
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    animation: pulse 1.5s ease-in-out infinite;
-  }
-
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-
-  /* ── ERROR ── */
-  .error-msg {
-    background: rgba(255,61,107,0.08);
-    border: 1px solid rgba(255,61,107,0.3);
-    color: var(--accent2);
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
-    padding: 14px 18px;
-    margin-bottom: 24px;
-    letter-spacing: 0.05em;
-    display: none;
-  }
-
-  .error-msg.visible { display: block; }
-
-  /* ── COPY TOAST ── */
-  .toast {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    background: var(--success);
-    color: var(--bg);
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
-    letter-spacing: 0.1em;
-    padding: 10px 20px;
-    z-index: 100;
-    transform: translateY(60px);
-    opacity: 0;
-    transition: all 0.3s;
-  }
-
-  .toast.show { transform: translateY(0); opacity: 1; }
-
-  /* ── FOOTER ── */
-  footer {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: linear-gradient(transparent, var(--bg) 60%);
-    padding: 20px 32px 16px;
-    display: flex;
-    justify-content: flex-end;
-    z-index: 20;
-    pointer-events: none;
-  }
-
-  .quota-info {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px;
-    color: var(--text-dim);
-    letter-spacing: 0.1em;
-    pointer-events: all;
-  }
-
-  /* ── NEXT PAGE ── */
-  .load-more-wrap {
-    text-align: center;
-    margin-top: 32px;
-    display: none;
-  }
-
-  .load-more-wrap.visible { display: block; }
-
-  .btn-more {
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--text-muted);
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 16px;
-    letter-spacing: 0.15em;
-    padding: 12px 40px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .btn-more:hover {
-    border-color: var(--accent);
-    color: var(--accent);
-  }
-
-  /* ── RESPONSIVE ── */
-  @media (max-width: 600px) {
-    header { padding: 16px; }
-    main { padding: 20px 16px 80px; }
-    .search-row { flex-direction: column; }
-    .search-input { border-right: 1px solid var(--border); border-bottom: none; }
-    .btn-search { padding: 12px; }
-    .results-grid { grid-template-columns: 1fr; }
-  }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>通知表コメント作成アシスタント</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Noto+Sans+JP:wght@400;700&display=swap');
+        body {
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+            background-color: #fce7f3;
+        }
+    </style>
 </head>
-<body>
+<body class="bg-pink-50 flex items-center justify-center p-4 min-h-screen">
 
-<header>
-  <div class="logo">
-    <span class="logo-main">SCOUT</span>
-    <span class="logo-sub">YouTube Research Tool</span>
-  </div>
-  <button class="api-badge" id="apiBadge" onclick="toggleApiPanel()">⚡ API KEY 未設定</button>
-</header>
+    <div class="bg-white p-8 rounded-2xl shadow-xl max-w-3xl w-full">
+        <h1 class="text-3xl font-bold text-gray-900 mb-6 text-center">通知表コメント作成アシスタント</h1>
 
-<main>
-
-  <!-- API KEY PANEL -->
-  <div class="api-panel visible" id="apiPanel">
-    <label>▸ YOUTUBE DATA API KEY</label>
-    <div class="api-panel-row">
-      <input type="password" class="api-input" id="apiKeyInput" placeholder="AIza..." autocomplete="off">
-      <button class="btn-save" onclick="saveApiKey()">SAVE</button>
-    </div>
-  </div>
-
-  <!-- SEARCH AREA -->
-  <div class="search-area">
-    <span class="search-label">▸ SEARCH QUERY</span>
-    <div class="search-row">
-      <input type="text" class="search-input" id="queryInput"
-        placeholder="例：VTuber OP アニメーション / ゲーム実況 オープニング / logo animation intro"
-        onkeydown="if(event.key==='Enter')doSearch()">
-      <button class="btn-search" id="searchBtn" onclick="doSearch()">SEARCH</button>
-    </div>
-    <div class="filter-row">
-      <span class="filter-label">SORT:</span>
-      <button class="filter-btn active" data-sort="relevance" onclick="setSort(this,'relevance')">関連度</button>
-      <button class="filter-btn" data-sort="viewCount" onclick="setSort(this,'viewCount')">再生数</button>
-      <button class="filter-btn" data-sort="date" onclick="setSort(this,'date')">新着</button>
-      <button class="filter-btn" data-sort="rating" onclick="setSort(this,'rating')">評価</button>
-      <span class="result-count" id="resultCount"></span>
-    </div>
-  </div>
-
-  <!-- ERROR -->
-  <div class="error-msg" id="errorMsg"></div>
-
-  <!-- LOADING -->
-  <div class="loading-wrap" id="loadingWrap">
-    <div class="scanner"></div>
-    <div class="loading-text">Scanning YouTube...</div>
-  </div>
-
-  <!-- RESULTS -->
-  <div class="results-grid" id="resultsGrid"></div>
-
-  <!-- EMPTY STATE -->
-  <div class="state-msg" id="emptyState">
-    <span class="icon">🎬</span>
-    <p>キーワードを入力して検索してください</p>
-    <p class="hint">VTuber OP / ゲーム実況 イントロ / logo animation など</p>
-  </div>
-
-  <!-- LOAD MORE -->
-  <div class="load-more-wrap" id="loadMoreWrap">
-    <button class="btn-more" onclick="loadMore()">LOAD MORE</button>
-  </div>
-
-</main>
-
-<footer>
-  <span class="quota-info" id="quotaInfo">YouTube Data API: 1検索 = 100 units / 日次上限 10,000 units</span>
-</footer>
-
-<!-- TOAST -->
-<div class="toast" id="toast">URL コピーしました</div>
-
-<script>
-  let apiKey = '';
-  let currentSort = 'relevance';
-  let nextPageToken = '';
-  let lastQuery = '';
-  let searchCount = 0;
-  const TAGS = ['参考', '競合', 'スタイル', 'NGパターン'];
-
-  // ── INIT ──
-  window.onload = () => {
-    const saved = localStorage.getItem('scout_api_key');
-    if (saved) {
-      apiKey = saved;
-      document.getElementById('apiKeyInput').value = saved;
-      setConnected(true);
-    }
-  };
-
-  function toggleApiPanel() {
-    const panel = document.getElementById('apiPanel');
-    panel.classList.toggle('visible');
-  }
-
-  function saveApiKey() {
-    const val = document.getElementById('apiKeyInput').value.trim();
-    if (!val) return;
-    apiKey = val;
-    localStorage.setItem('scout_api_key', val);
-    setConnected(true);
-    document.getElementById('apiPanel').classList.remove('visible');
-    showToast('APIキーを保存しました');
-  }
-
-  function setConnected(ok) {
-    const badge = document.getElementById('apiBadge');
-    badge.textContent = ok ? '✓ API CONNECTED' : '⚡ API KEY 未設定';
-    badge.className = ok ? 'api-badge connected' : 'api-badge';
-  }
-
-  function setSort(el, val) {
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    el.classList.add('active');
-    currentSort = val;
-    if (lastQuery) doSearch();
-  }
-
-  // ── SEARCH ──
-  async function doSearch() {
-    const q = document.getElementById('queryInput').value.trim();
-    if (!q) return;
-    if (!apiKey) {
-      showError('APIキーを設定してください。右上の [API KEY] ボタンから入力できます。');
-      document.getElementById('apiPanel').classList.add('visible');
-      return;
-    }
-    lastQuery = q;
-    nextPageToken = '';
-    document.getElementById('resultsGrid').innerHTML = '';
-    hideError();
-    setLoading(true);
-    setEmptyState(false);
-    document.getElementById('loadMoreWrap').classList.remove('visible');
-    await fetchVideos(false);
-  }
-
-  async function loadMore() {
-    if (!nextPageToken) return;
-    await fetchVideos(true);
-  }
-
-  async function fetchVideos(append) {
-    searchCount++;
-    setLoading(true);
-    try {
-      // Search
-      let searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&q=${encodeURIComponent(lastQuery)}&maxResults=12&order=${currentSort}&key=${apiKey}`;
-      if (nextPageToken) searchUrl += `&pageToken=${nextPageToken}`;
-
-      const searchRes = await fetch(searchUrl);
-      const searchData = await searchRes.json();
-
-      if (searchData.error) {
-        throw new Error(searchData.error.message);
-      }
-
-      nextPageToken = searchData.nextPageToken || '';
-
-      const ids = searchData.items.map(i => i.id.videoId).join(',');
-
-      // Video details (views, duration)
-      const detailUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&id=${ids}&key=${apiKey}`;
-      const detailRes = await fetch(detailUrl);
-      const detailData = await detailRes.json();
-
-      const total = searchData.pageInfo?.totalResults || 0;
-      document.getElementById('resultCount').textContent = `約 ${total.toLocaleString()} 件`;
-
-      renderCards(detailData.items, append);
-      document.getElementById('loadMoreWrap').classList.toggle('visible', !!nextPageToken);
-      document.getElementById('quotaInfo').textContent =
-        `このセッション: ${searchCount} 回検索 (約 ${searchCount * 200} units 消費) | 日次上限: 10,000 units`;
-
-    } catch(e) {
-      showError(`エラー: ${e.message}`);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function renderCards(items, append) {
-    const grid = document.getElementById('resultsGrid');
-    if (!append) grid.innerHTML = '';
-
-    if (!items || items.length === 0) {
-      setEmptyState(true, '検索結果がありませんでした');
-      return;
-    }
-
-    items.forEach((item, i) => {
-      const vid = item.id;
-      const sn = item.snippet;
-      const st = item.statistics || {};
-      const cd = item.contentDetails || {};
-
-      const thumb = sn.thumbnails?.medium?.url || sn.thumbnails?.default?.url || '';
-      const title = sn.title || '';
-      const channel = sn.channelTitle || '';
-      const views = parseInt(st.viewCount || 0);
-      const publishedAt = sn.publishedAt ? sn.publishedAt.slice(0,10) : '';
-      const duration = formatDuration(cd.duration || '');
-      const url = `https://www.youtube.com/watch?v=${vid}`;
-
-      const card = document.createElement('a');
-      card.className = 'video-card';
-      card.href = url;
-      card.target = '_blank';
-      card.style.animationDelay = `${(i % 12) * 40}ms`;
-      card.innerHTML = `
-        <div class="thumb-wrap">
-          <img src="${escHtml(thumb)}" alt="" loading="lazy" onerror="this.style.opacity=0">
-          <div class="card-overlay">
-            <div class="play-icon">
-              <svg width="16" height="16" viewBox="0 0 16 16"><polygon points="3,2 14,8 3,14"/></svg>
-            </div>
-          </div>
-          ${duration ? `<span class="duration-badge">${escHtml(duration)}</span>` : ''}
+        <!-- APIキー設定エリア -->
+        <div id="apiKeySection" class="mb-6">
+            <details id="apiKeyDetails">
+                <summary class="cursor-pointer text-sm text-gray-500 hover:text-gray-700 select-none">⚙️ API設定</summary>
+                <div class="mt-3 p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-3">
+                    <div>
+                        <label for="apiKeyInput" class="block text-sm font-medium text-gray-700 mb-1">Gemini APIキー</label>
+                        <div class="flex gap-2">
+                            <input type="password" id="apiKeyInput" placeholder="AIza..." class="flex-grow px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 outline-none text-sm font-mono">
+                            <button id="toggleKeyVisibility" class="text-gray-400 hover:text-gray-600 px-2 text-sm shrink-0" title="表示切替">👁</button>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="saveKeyBtn" class="bg-pink-600 text-white py-1.5 px-4 rounded-lg text-sm font-semibold hover:bg-pink-700">保存</button>
+                        <button id="clearKeyBtn" class="bg-gray-200 text-gray-600 py-1.5 px-4 rounded-lg text-sm font-semibold hover:bg-gray-300">削除</button>
+                    </div>
+                    <p id="apiKeyStatus" class="text-xs text-gray-400"></p>
+                </div>
+            </details>
         </div>
-        <div class="card-body">
-          <div class="card-title">${escHtml(title)}</div>
-          <div class="card-meta">
-            <span class="card-channel">${escHtml(channel)}</span>
-            <div class="card-stats">
-              <span class="stat-views">${formatViews(views)}</span>
-              <span class="stat-date">${publishedAt}</span>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 space-y-6">
+                <div>
+                    <label for="studentName" class="block text-sm font-medium text-gray-700 mb-1">生徒氏名</label>
+                    <input type="text" id="studentName" placeholder="例：山田 太郎" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 transition-all outline-none">
+                </div>
+            
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">キーワード（複数選択可）</label>
+                    <div id="keyword-container" class="flex flex-wrap gap-2"></div>
+                    <div class="mt-4 flex gap-2">
+                        <input type="text" id="newKeywordInput" placeholder="新しいキーワード" class="flex-grow px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 outline-none">
+                        <button id="addKeywordBtn" class="bg-pink-200 text-pink-800 py-2 px-4 rounded-lg font-semibold hover:bg-pink-300 shrink-0">追加</button>
+                    </div>
+                </div>
+
+                <button id="generateBtn" class="w-full bg-pink-600 text-white font-bold py-3 px-4 rounded-xl shadow-md hover:bg-pink-700 transition-all">
+                    コメント例を生成
+                </button>
             </div>
-          </div>
-          <div class="card-tag-row" onclick="event.preventDefault()">
-            ${TAGS.map(t => `<span class="tag" onclick="toggleTag(this,'${escHtml(t)}')">${escHtml(t)}</span>`).join('')}
-            <span class="tag" title="URLをコピー" onclick="copyUrl('${escHtml(url)}')">📋 コピー</span>
-          </div>
+
+            <div class="lg:col-span-1">
+                <div class="bg-pink-100 p-6 rounded-xl h-full border border-pink-200">
+                    <h2 class="text-lg font-bold text-pink-800 mb-4">作成済み生徒 <span id="studentCount" class="text-sm font-normal"></span></h2>
+                    <ul id="studentList" class="space-y-2 text-sm overflow-y-auto max-h-40"></ul>
+                </div>
+            </div>
         </div>
-      `;
-      grid.appendChild(card);
-    });
-  }
 
-  // ── HELPERS ──
-  function formatViews(n) {
-    if (!n) return '---';
-    if (n >= 1000000) return (n/1000000).toFixed(1) + 'M views';
-    if (n >= 10000) return Math.floor(n/1000) + 'K views';
-    if (n >= 1000) return (n/1000).toFixed(1) + 'K views';
-    return n.toLocaleString() + ' views';
-  }
+        <div class="mt-8">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">生成されたコメント案</h2>
+            <div id="outputArea" class="bg-gray-50 p-6 rounded-xl border-2 border-dashed border-gray-200 text-gray-800 min-h-[150px] flex items-center justify-center">
+                <p class="text-gray-400">条件を入力して生成ボタンを押してください</p>
+            </div>
+            <button id="copyBtn" class="mt-4 w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hidden hover:bg-indigo-700 transition-all">
+                すべての案をコピー
+            </button>
+        </div>
+    </div>
 
-  function formatDuration(iso) {
-    if (!iso) return '';
-    const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-    if (!m) return '';
-    const h = parseInt(m[1]||0), min = parseInt(m[2]||0), s = parseInt(m[3]||0);
-    if (h > 0) return `${h}:${String(min).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-    return `${min}:${String(s).padStart(2,'0')}`;
-  }
+    <script>
+        // Model Configuration
+        const modelId = "gemini-2.5-flash";
 
-  function escHtml(s) {
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
+        // DOM Elements
+        const apiKeyInput = document.getElementById('apiKeyInput');
+        const saveKeyBtn = document.getElementById('saveKeyBtn');
+        const clearKeyBtn = document.getElementById('clearKeyBtn');
+        const apiKeyStatus = document.getElementById('apiKeyStatus');
+        const apiKeyDetails = document.getElementById('apiKeyDetails');
+        const toggleKeyVisibility = document.getElementById('toggleKeyVisibility');
+        const studentNameInput = document.getElementById('studentName');
+        const keywordContainer = document.getElementById('keyword-container');
+        const newKeywordInput = document.getElementById('newKeywordInput');
+        const addKeywordBtn = document.getElementById('addKeywordBtn');
+        const generateBtn = document.getElementById('generateBtn');
+        const outputArea = document.getElementById('outputArea');
+        const copyBtn = document.getElementById('copyBtn');
+        const studentList = document.getElementById('studentList');
+        const studentCountSpan = document.getElementById('studentCount');
 
-  function toggleTag(el, tag) {
-    el.classList.toggle('active');
-  }
+        let selectedKeywords = [];
+        let generatedComments = [];
+        let savedKeywords = JSON.parse(localStorage.getItem('v10_keywords')) || ["明るい", "リーダーシップ", "努力家", "粘り強い", "優しい", "整理整頓", "好奇心", "発表"];
+        let createdStudents = JSON.parse(localStorage.getItem('v10_students')) || [];
 
-  function copyUrl(url) {
-    navigator.clipboard.writeText(url).then(() => showToast('URL コピーしました'));
-  }
+        // --- APIキー管理 ---
+        function getApiKey() {
+            return localStorage.getItem('v10_apiKey') || '';
+        }
 
-  function setLoading(on) {
-    document.getElementById('loadingWrap').classList.toggle('visible', on);
-    document.getElementById('searchBtn').disabled = on;
-  }
+        function updateApiKeyUI() {
+            const key = getApiKey();
+            if (key) {
+                apiKeyStatus.textContent = '✅ APIキーは保存済みです';
+                apiKeyStatus.className = 'text-xs text-green-600';
+                apiKeyInput.value = key;
+                apiKeyDetails.removeAttribute('open');
+            } else {
+                apiKeyStatus.textContent = '⚠️ APIキーが未設定です。設定してください。';
+                apiKeyStatus.className = 'text-xs text-amber-600';
+                apiKeyInput.value = '';
+                apiKeyDetails.setAttribute('open', '');
+            }
+        }
 
-  function setEmptyState(on, msg) {
-    const el = document.getElementById('emptyState');
-    if (on) {
-      el.innerHTML = `<span class="icon">🔍</span><p>${msg || 'キーワードを入力して検索してください'}</p>`;
-      el.style.display = 'block';
-    } else {
-      el.style.display = 'none';
-    }
-  }
+        saveKeyBtn.onclick = () => {
+            const key = apiKeyInput.value.trim();
+            if (!key) {
+                alert('APIキーを入力してください。');
+                return;
+            }
+            localStorage.setItem('v10_apiKey', key);
+            updateApiKeyUI();
+        };
 
-  function showError(msg) {
-    const el = document.getElementById('errorMsg');
-    el.textContent = msg;
-    el.classList.add('visible');
-  }
+        clearKeyBtn.onclick = () => {
+            if (confirm('保存済みのAPIキーを削除しますか？')) {
+                localStorage.removeItem('v10_apiKey');
+                apiKeyInput.value = '';
+                updateApiKeyUI();
+            }
+        };
 
-  function hideError() {
-    document.getElementById('errorMsg').classList.remove('visible');
-  }
+        toggleKeyVisibility.onclick = () => {
+            if (apiKeyInput.type === 'password') {
+                apiKeyInput.type = 'text';
+                toggleKeyVisibility.textContent = '🔒';
+            } else {
+                apiKeyInput.type = 'password';
+                toggleKeyVisibility.textContent = '👁';
+            }
+        };
 
-  function showToast(msg) {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 2500);
-  }
-</script>
+        // --- キーワード ---
+        function renderKeywords() {
+            keywordContainer.innerHTML = '';
+            savedKeywords.forEach(kw => {
+                const active = selectedKeywords.includes(kw);
+                const btn = document.createElement('button');
+                btn.textContent = kw;
+                btn.className = `py-1.5 px-3 rounded-full text-sm font-medium transition-colors ${active ? 'bg-pink-600 text-white' : 'bg-pink-100 text-pink-700 hover:bg-pink-200'}`;
+                btn.onclick = () => {
+                    if (active) {
+                        selectedKeywords = selectedKeywords.filter(k => k !== kw);
+                    } else {
+                        selectedKeywords.push(kw);
+                    }
+                    renderKeywords();
+                };
+                keywordContainer.appendChild(btn);
+            });
+        }
+
+        // --- 生徒リスト ---
+        function renderStudents() {
+            studentCountSpan.textContent = `(${createdStudents.length}人)`;
+            if (createdStudents.length === 0) {
+                studentList.innerHTML = '<li class="text-gray-400 italic">履歴なし</li>';
+            } else {
+                studentList.innerHTML = '';
+                createdStudents.forEach(name => {
+                    const li = document.createElement('li');
+                    li.className = 'p-2 bg-white rounded cursor-pointer hover:bg-pink-50 border border-pink-100 transition-all text-gray-700 overflow-hidden text-ellipsis whitespace-nowrap';
+                    li.textContent = name;
+                    li.onclick = () => {
+                        studentNameInput.value = name;
+                    };
+                    studentList.appendChild(li);
+                });
+            }
+        }
+
+        addKeywordBtn.onclick = () => {
+            const val = newKeywordInput.value.trim();
+            if (val && !savedKeywords.includes(val)) {
+                savedKeywords.push(val);
+                localStorage.setItem('v10_keywords', JSON.stringify(savedKeywords));
+                newKeywordInput.value = '';
+                renderKeywords();
+            }
+        };
+
+        // --- Gemini API 呼び出し ---
+        async function callGemini(prompt) {
+            const apiKey = getApiKey();
+            if (!apiKey) {
+                throw new Error("APIキーが設定されていません。上部の「⚙️ API設定」からキーを保存してください。");
+            }
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`;
+            
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            comments: {
+                                type: "ARRAY",
+                                items: { type: "string" }
+                            }
+                        },
+                        required: ["comments"]
+                    }
+                }
+            };
+
+            let lastError = null;
+            const delays = [1000, 2000, 4000, 8000, 16000];
+
+            for (let i = 0; i < 5; i++) {
+                try {
+                    const res = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        const json = await res.json();
+                        return json;
+                    }
+                    
+                    const errorJson = await res.json();
+                    lastError = errorJson.error?.message || `Status: ${res.status}`;
+                    
+                    if (res.status === 403 || res.status === 401) {
+                        throw new Error("APIキーが無効です。正しいキーを設定してください。");
+                    }
+                    if (res.status !== 429 && res.status !== 500) break;
+                } catch (e) {
+                    if (e.message.includes("APIキー")) throw e;
+                    lastError = e.message;
+                }
+                
+                if (i < 4) await new Promise(r => setTimeout(r, delays[i]));
+            }
+            throw new Error(lastError || "通信に失敗しました。");
+        }
+
+        // --- 生成ボタン ---
+        generateBtn.onclick = async () => {
+            const name = studentNameInput.value.trim();
+            if (!name) {
+                alert("生徒氏名を入力してください。");
+                return;
+            }
+            if (selectedKeywords.length === 0) {
+                alert("キーワードを1つ以上選択してください。");
+                return;
+            }
+
+            outputArea.innerHTML = `
+                <div class="text-center">
+                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600 mb-2"></div>
+                    <p class="text-pink-600 font-medium animate-pulse">AIが文章を作成中...</p>
+                </div>`;
+            outputArea.className = "bg-gray-50 p-6 rounded-xl border-2 border-dashed border-gray-200 text-gray-800 min-h-[150px] flex items-center justify-center";
+            copyBtn.classList.add('hidden');
+
+            const prompt = `あなたは日本の小学校教員です。${name}さんの通知表の「所見」欄に記載する文章を、以下のキーワードをすべて盛り込んで3パターン作成してください。
+キーワード: ${selectedKeywords.join('、')}
+文末は「〜です。」「〜ました。」とし、客観的かつ温かみのある表現を用いてください。
+JSON形式 {"comments": ["文章1", "文章2", "文章3"]} で回答してください。`;
+
+            try {
+                const result = await callGemini(prompt);
+                let textPart = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                
+                if (!textPart) throw new Error("AIからの応答内容が空でした。");
+                
+                let data;
+                try {
+                    data = JSON.parse(textPart);
+                } catch (e) {
+                    const startIdx = textPart.indexOf('{');
+                    const endIdx = textPart.lastIndexOf('}');
+                    if (startIdx !== -1 && endIdx !== -1) {
+                        const jsonStr = textPart.substring(startIdx, endIdx + 1);
+                        data = JSON.parse(jsonStr);
+                    } else {
+                        throw new Error("応答データがJSON形式ではありません。");
+                    }
+                }
+                
+                if (!data || !data.comments || !Array.isArray(data.comments)) {
+                    throw new Error("生成されたデータ構造が期待と異なります。");
+                }
+
+                generatedComments = data.comments;
+
+                outputArea.innerHTML = '';
+                outputArea.className = "bg-white p-6 rounded-xl border-2 border-pink-100 space-y-4 flex flex-col items-stretch";
+                
+                generatedComments.forEach((txt, i) => {
+                    const div = document.createElement('div');
+                    div.className = "p-4 bg-gray-50 rounded-lg border-l-4 border-pink-500 relative transition-transform hover:scale-[1.01]";
+                    div.innerHTML = `
+                        <span class="text-[10px] font-bold text-pink-400 absolute top-1 left-2 tracking-widest uppercase">案 ${i+1}</span>
+                        <p class="mt-2 text-gray-700 leading-relaxed text-sm md:text-base">${txt}</p>`;
+                    outputArea.appendChild(div);
+                });
+
+                copyBtn.classList.remove('hidden');
+
+                if (!createdStudents.includes(name)) {
+                    createdStudents = [name, ...createdStudents].slice(0, 20);
+                    localStorage.setItem('v10_students', JSON.stringify(createdStudents));
+                    renderStudents();
+                }
+            } catch (err) {
+                console.error("Generate Error:", err);
+                outputArea.innerHTML = `
+                    <div class="text-red-500 text-center p-4">
+                        <svg class="w-10 h-10 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        <p class="font-bold">生成エラーが発生しました</p>
+                        <p class="text-xs mt-1 text-red-400">理由: ${err.message}</p>
+                        <button onclick="location.reload()" class="mt-4 text-xs underline text-gray-400">アプリをリセット</button>
+                    </div>`;
+            }
+        };
+
+        // --- コピーボタン ---
+        copyBtn.onclick = () => {
+            const allText = generatedComments.join('\n\n---\n\n');
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(allText).then(() => {
+                    showCopySuccess();
+                }).catch(() => {
+                    fallbackCopy(allText);
+                });
+            } else {
+                fallbackCopy(allText);
+            }
+        };
+
+        function showCopySuccess() {
+            const originalText = copyBtn.textContent;
+            copyBtn.textContent = "✓ クリップボードにコピー完了";
+            copyBtn.classList.replace('bg-indigo-600', 'bg-green-600');
+            setTimeout(() => {
+                copyBtn.textContent = originalText;
+                copyBtn.classList.replace('bg-green-600', 'bg-indigo-600');
+            }, 2000);
+        }
+
+        function fallbackCopy(text) {
+            const el = document.createElement('textarea');
+            el.value = text;
+            document.body.appendChild(el);
+            el.select();
+            try {
+                document.execCommand('copy');
+                showCopySuccess();
+            } catch (err) {
+                alert("コピーに失敗しました。");
+            }
+            document.body.removeChild(el);
+        }
+
+        // --- 初期化 ---
+        renderKeywords();
+        renderStudents();
+        updateApiKeyUI();
+    </script>
 </body>
 </html>
