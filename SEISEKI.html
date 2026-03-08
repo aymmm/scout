@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>通知表コメント作成アシスタント</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Noto+Sans+JP:wght@400;700&display=swap');
+        body {
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+            background-color: #fce7f3;
+        }
+    </style>
+</head>
+<body class="bg-pink-50 flex items-center justify-center p-4 min-h-screen">
+
+    <div class="bg-white p-8 rounded-2xl shadow-xl max-w-3xl w-full">
+        <h1 class="text-3xl font-bold text-gray-900 mb-6 text-center">通知表コメント作成アシスタント</h1>
+
+        <!-- APIキー設定エリア -->
+        <div id="apiKeySection" class="mb-6">
+            <details id="apiKeyDetails">
+                <summary class="cursor-pointer text-sm text-gray-500 hover:text-gray-700 select-none">⚙️ API設定</summary>
+                <div class="mt-3 p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-3">
+                    <div>
+                        <label for="apiKeyInput" class="block text-sm font-medium text-gray-700 mb-1">Gemini APIキー</label>
+                        <div class="flex gap-2">
+                            <input type="password" id="apiKeyInput" placeholder="AIza..." class="flex-grow px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 outline-none text-sm font-mono">
+                            <button id="toggleKeyVisibility" class="text-gray-400 hover:text-gray-600 px-2 text-sm shrink-0" title="表示切替">👁</button>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="saveKeyBtn" class="bg-pink-600 text-white py-1.5 px-4 rounded-lg text-sm font-semibold hover:bg-pink-700">保存</button>
+                        <button id="clearKeyBtn" class="bg-gray-200 text-gray-600 py-1.5 px-4 rounded-lg text-sm font-semibold hover:bg-gray-300">削除</button>
+                    </div>
+                    <p id="apiKeyStatus" class="text-xs text-gray-400"></p>
+                </div>
+            </details>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 space-y-6">
+                <div>
+                    <label for="studentName" class="block text-sm font-medium text-gray-700 mb-1">生徒氏名</label>
+                    <input type="text" id="studentName" placeholder="例：山田 太郎" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 transition-all outline-none">
+                </div>
+            
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">キーワード（複数選択可）</label>
+                    <div id="keyword-container" class="flex flex-wrap gap-2"></div>
+                    <div class="mt-4 flex gap-2">
+                        <input type="text" id="newKeywordInput" placeholder="新しいキーワード" class="flex-grow px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 outline-none">
+                        <button id="addKeywordBtn" class="bg-pink-200 text-pink-800 py-2 px-4 rounded-lg font-semibold hover:bg-pink-300 shrink-0">追加</button>
+                    </div>
+                </div>
+
+                <button id="generateBtn" class="w-full bg-pink-600 text-white font-bold py-3 px-4 rounded-xl shadow-md hover:bg-pink-700 transition-all">
+                    コメント例を生成
+                </button>
+            </div>
+
+            <div class="lg:col-span-1">
+                <div class="bg-pink-100 p-6 rounded-xl h-full border border-pink-200">
+                    <h2 class="text-lg font-bold text-pink-800 mb-4">作成済み生徒 <span id="studentCount" class="text-sm font-normal"></span></h2>
+                    <ul id="studentList" class="space-y-2 text-sm overflow-y-auto max-h-40"></ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-8">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">生成されたコメント案</h2>
+            <div id="outputArea" class="bg-gray-50 p-6 rounded-xl border-2 border-dashed border-gray-200 text-gray-800 min-h-[150px] flex items-center justify-center">
+                <p class="text-gray-400">条件を入力して生成ボタンを押してください</p>
+            </div>
+            <button id="copyBtn" class="mt-4 w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hidden hover:bg-indigo-700 transition-all">
+                すべての案をコピー
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Model Configuration
+        const modelId = "gemini-2.5-flash";
+
+        // DOM Elements
+        const apiKeyInput = document.getElementById('apiKeyInput');
+        const saveKeyBtn = document.getElementById('saveKeyBtn');
+        const clearKeyBtn = document.getElementById('clearKeyBtn');
+        const apiKeyStatus = document.getElementById('apiKeyStatus');
+        const apiKeyDetails = document.getElementById('apiKeyDetails');
+        const toggleKeyVisibility = document.getElementById('toggleKeyVisibility');
+        const studentNameInput = document.getElementById('studentName');
+        const keywordContainer = document.getElementById('keyword-container');
+        const newKeywordInput = document.getElementById('newKeywordInput');
+        const addKeywordBtn = document.getElementById('addKeywordBtn');
+        const generateBtn = document.getElementById('generateBtn');
+        const outputArea = document.getElementById('outputArea');
+        const copyBtn = document.getElementById('copyBtn');
+        const studentList = document.getElementById('studentList');
+        const studentCountSpan = document.getElementById('studentCount');
+
+        let selectedKeywords = [];
+        let generatedComments = [];
+        let savedKeywords = JSON.parse(localStorage.getItem('v10_keywords')) || ["明るい", "リーダーシップ", "努力家", "粘り強い", "優しい", "整理整頓", "好奇心", "発表"];
+        let createdStudents = JSON.parse(localStorage.getItem('v10_students')) || [];
+
+        // --- APIキー管理 ---
+        function getApiKey() {
+            return localStorage.getItem('v10_apiKey') || '';
+        }
+
+        function updateApiKeyUI() {
+            const key = getApiKey();
+            if (key) {
+                apiKeyStatus.textContent = '✅ APIキーは保存済みです';
+                apiKeyStatus.className = 'text-xs text-green-600';
+                apiKeyInput.value = key;
+                apiKeyDetails.removeAttribute('open');
+            } else {
+                apiKeyStatus.textContent = '⚠️ APIキーが未設定です。設定してください。';
+                apiKeyStatus.className = 'text-xs text-amber-600';
+                apiKeyInput.value = '';
+                apiKeyDetails.setAttribute('open', '');
+            }
+        }
+
+        saveKeyBtn.onclick = () => {
+            const key = apiKeyInput.value.trim();
+            if (!key) {
+                alert('APIキーを入力してください。');
+                return;
+            }
+            localStorage.setItem('v10_apiKey', key);
+            updateApiKeyUI();
+        };
+
+        clearKeyBtn.onclick = () => {
+            if (confirm('保存済みのAPIキーを削除しますか？')) {
+                localStorage.removeItem('v10_apiKey');
+                apiKeyInput.value = '';
+                updateApiKeyUI();
+            }
+        };
+
+        toggleKeyVisibility.onclick = () => {
+            if (apiKeyInput.type === 'password') {
+                apiKeyInput.type = 'text';
+                toggleKeyVisibility.textContent = '🔒';
+            } else {
+                apiKeyInput.type = 'password';
+                toggleKeyVisibility.textContent = '👁';
+            }
+        };
+
+        // --- キーワード ---
+        function renderKeywords() {
+            keywordContainer.innerHTML = '';
+            savedKeywords.forEach(kw => {
+                const active = selectedKeywords.includes(kw);
+                const btn = document.createElement('button');
+                btn.textContent = kw;
+                btn.className = `py-1.5 px-3 rounded-full text-sm font-medium transition-colors ${active ? 'bg-pink-600 text-white' : 'bg-pink-100 text-pink-700 hover:bg-pink-200'}`;
+                btn.onclick = () => {
+                    if (active) {
+                        selectedKeywords = selectedKeywords.filter(k => k !== kw);
+                    } else {
+                        selectedKeywords.push(kw);
+                    }
+                    renderKeywords();
+                };
+                keywordContainer.appendChild(btn);
+            });
+        }
+
+        // --- 生徒リスト ---
+        function renderStudents() {
+            studentCountSpan.textContent = `(${createdStudents.length}人)`;
+            if (createdStudents.length === 0) {
+                studentList.innerHTML = '<li class="text-gray-400 italic">履歴なし</li>';
+            } else {
+                studentList.innerHTML = '';
+                createdStudents.forEach(name => {
+                    const li = document.createElement('li');
+                    li.className = 'p-2 bg-white rounded cursor-pointer hover:bg-pink-50 border border-pink-100 transition-all text-gray-700 overflow-hidden text-ellipsis whitespace-nowrap';
+                    li.textContent = name;
+                    li.onclick = () => {
+                        studentNameInput.value = name;
+                    };
+                    studentList.appendChild(li);
+                });
+            }
+        }
+
+        addKeywordBtn.onclick = () => {
+            const val = newKeywordInput.value.trim();
+            if (val && !savedKeywords.includes(val)) {
+                savedKeywords.push(val);
+                localStorage.setItem('v10_keywords', JSON.stringify(savedKeywords));
+                newKeywordInput.value = '';
+                renderKeywords();
+            }
+        };
+
+        // --- Gemini API 呼び出し ---
+        async function callGemini(prompt) {
+            const apiKey = getApiKey();
+            if (!apiKey) {
+                throw new Error("APIキーが設定されていません。上部の「⚙️ API設定」からキーを保存してください。");
+            }
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`;
+            
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "OBJECT",
+                        properties: {
+                            comments: {
+                                type: "ARRAY",
+                                items: { type: "string" }
+                            }
+                        },
+                        required: ["comments"]
+                    }
+                }
+            };
+
+            let lastError = null;
+            const delays = [1000, 2000, 4000, 8000, 16000];
+
+            for (let i = 0; i < 5; i++) {
+                try {
+                    const res = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        const json = await res.json();
+                        return json;
+                    }
+                    
+                    const errorJson = await res.json();
+                    lastError = errorJson.error?.message || `Status: ${res.status}`;
+                    
+                    if (res.status === 403 || res.status === 401) {
+                        throw new Error("APIキーが無効です。正しいキーを設定してください。");
+                    }
+                    if (res.status !== 429 && res.status !== 500) break;
+                } catch (e) {
+                    if (e.message.includes("APIキー")) throw e;
+                    lastError = e.message;
+                }
+                
+                if (i < 4) await new Promise(r => setTimeout(r, delays[i]));
+            }
+            throw new Error(lastError || "通信に失敗しました。");
+        }
+
+        // --- 生成ボタン ---
+        generateBtn.onclick = async () => {
+            const name = studentNameInput.value.trim();
+            if (!name) {
+                alert("生徒氏名を入力してください。");
+                return;
+            }
+            if (selectedKeywords.length === 0) {
+                alert("キーワードを1つ以上選択してください。");
+                return;
+            }
+
+            outputArea.innerHTML = `
+                <div class="text-center">
+                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600 mb-2"></div>
+                    <p class="text-pink-600 font-medium animate-pulse">AIが文章を作成中...</p>
+                </div>`;
+            outputArea.className = "bg-gray-50 p-6 rounded-xl border-2 border-dashed border-gray-200 text-gray-800 min-h-[150px] flex items-center justify-center";
+            copyBtn.classList.add('hidden');
+
+            const prompt = `あなたは日本の小学校教員です。${name}さんの通知表の「所見」欄に記載する文章を、以下のキーワードをすべて盛り込んで3パターン作成してください。
+キーワード: ${selectedKeywords.join('、')}
+文末は「〜です。」「〜ました。」とし、客観的かつ温かみのある表現を用いてください。
+JSON形式 {"comments": ["文章1", "文章2", "文章3"]} で回答してください。`;
+
+            try {
+                const result = await callGemini(prompt);
+                let textPart = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                
+                if (!textPart) throw new Error("AIからの応答内容が空でした。");
+                
+                let data;
+                try {
+                    data = JSON.parse(textPart);
+                } catch (e) {
+                    const startIdx = textPart.indexOf('{');
+                    const endIdx = textPart.lastIndexOf('}');
+                    if (startIdx !== -1 && endIdx !== -1) {
+                        const jsonStr = textPart.substring(startIdx, endIdx + 1);
+                        data = JSON.parse(jsonStr);
+                    } else {
+                        throw new Error("応答データがJSON形式ではありません。");
+                    }
+                }
+                
+                if (!data || !data.comments || !Array.isArray(data.comments)) {
+                    throw new Error("生成されたデータ構造が期待と異なります。");
+                }
+
+                generatedComments = data.comments;
+
+                outputArea.innerHTML = '';
+                outputArea.className = "bg-white p-6 rounded-xl border-2 border-pink-100 space-y-4 flex flex-col items-stretch";
+                
+                generatedComments.forEach((txt, i) => {
+                    const div = document.createElement('div');
+                    div.className = "p-4 bg-gray-50 rounded-lg border-l-4 border-pink-500 relative transition-transform hover:scale-[1.01]";
+                    div.innerHTML = `
+                        <span class="text-[10px] font-bold text-pink-400 absolute top-1 left-2 tracking-widest uppercase">案 ${i+1}</span>
+                        <p class="mt-2 text-gray-700 leading-relaxed text-sm md:text-base">${txt}</p>`;
+                    outputArea.appendChild(div);
+                });
+
+                copyBtn.classList.remove('hidden');
+
+                if (!createdStudents.includes(name)) {
+                    createdStudents = [name, ...createdStudents].slice(0, 20);
+                    localStorage.setItem('v10_students', JSON.stringify(createdStudents));
+                    renderStudents();
+                }
+            } catch (err) {
+                console.error("Generate Error:", err);
+                outputArea.innerHTML = `
+                    <div class="text-red-500 text-center p-4">
+                        <svg class="w-10 h-10 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        <p class="font-bold">生成エラーが発生しました</p>
+                        <p class="text-xs mt-1 text-red-400">理由: ${err.message}</p>
+                        <button onclick="location.reload()" class="mt-4 text-xs underline text-gray-400">アプリをリセット</button>
+                    </div>`;
+            }
+        };
+
+        // --- コピーボタン ---
+        copyBtn.onclick = () => {
+            const allText = generatedComments.join('\n\n---\n\n');
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(allText).then(() => {
+                    showCopySuccess();
+                }).catch(() => {
+                    fallbackCopy(allText);
+                });
+            } else {
+                fallbackCopy(allText);
+            }
+        };
+
+        function showCopySuccess() {
+            const originalText = copyBtn.textContent;
+            copyBtn.textContent = "✓ クリップボードにコピー完了";
+            copyBtn.classList.replace('bg-indigo-600', 'bg-green-600');
+            setTimeout(() => {
+                copyBtn.textContent = originalText;
+                copyBtn.classList.replace('bg-green-600', 'bg-indigo-600');
+            }, 2000);
+        }
+
+        function fallbackCopy(text) {
+            const el = document.createElement('textarea');
+            el.value = text;
+            document.body.appendChild(el);
+            el.select();
+            try {
+                document.execCommand('copy');
+                showCopySuccess();
+            } catch (err) {
+                alert("コピーに失敗しました。");
+            }
+            document.body.removeChild(el);
+        }
+
+        // --- 初期化 ---
+        renderKeywords();
+        renderStudents();
+        updateApiKeyUI();
+    </script>
+</body>
+</html>
