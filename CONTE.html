@@ -33,7 +33,6 @@ body {
   position: relative;
 }
 
-/* Paper texture overlay */
 body::before {
   content: '';
   position: fixed;
@@ -44,7 +43,6 @@ body::before {
   opacity: 0.6;
 }
 
-/* ── HEADER ── */
 header {
   position: relative;
   z-index: 10;
@@ -101,7 +99,6 @@ header {
 .api-badge:hover { border-color: var(--accent); color: var(--accent); }
 .api-badge.connected { border-color: var(--success); color: var(--success); }
 
-/* ── MAIN ── */
 main {
   position: relative;
   z-index: 5;
@@ -110,7 +107,6 @@ main {
   padding: 40px 24px 100px;
 }
 
-/* ── STEP INDICATOR ── */
 .steps {
   display: flex;
   align-items: center;
@@ -159,27 +155,16 @@ main {
   margin: 0 4px;
 }
 
-.step.active .step-num {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-}
-
+.step.active .step-num { background: var(--accent); border-color: var(--accent); color: #fff; }
 .step.active .step-label { color: var(--accent); }
 .step.done .step-num { background: var(--success); border-color: var(--success); color: #fff; }
 .step.done .step-label { color: var(--success); }
 
-/* ── PANELS ── */
-.panel {
-  display: none;
-  animation: fadeIn 0.3s ease;
-}
-
+.panel { display: none; animation: fadeIn 0.3s ease; }
 .panel.active { display: block; }
 
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
-/* ── API PANEL ── */
 .api-panel {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -191,7 +176,24 @@ main {
 
 .api-panel.visible { display: block; }
 
-/* ── SECTION TITLE ── */
+/* Groq info box */
+.groq-info {
+  background: rgba(42,108,140,0.06);
+  border-left: 3px solid var(--accent2);
+  padding: 12px 16px;
+  font-size: 12px;
+  color: var(--ink-mid);
+  line-height: 1.7;
+  margin-bottom: 16px;
+}
+
+.groq-info a {
+  color: var(--accent2);
+  text-decoration: none;
+}
+
+.groq-info a:hover { text-decoration: underline; }
+
 .section-title {
   font-family: 'Cormorant Garamond', serif;
   font-weight: 400;
@@ -208,7 +210,6 @@ main {
   letter-spacing: 0.02em;
 }
 
-/* ── FORM ── */
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -220,12 +221,7 @@ main {
 
 @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
 
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
+.field { display: flex; flex-direction: column; gap: 6px; }
 .field.full { grid-column: 1 / -1; }
 
 label {
@@ -255,7 +251,6 @@ textarea {
 
 input:focus, select:focus, textarea:focus { border-color: var(--accent); }
 input::placeholder, textarea::placeholder { color: var(--ink-light); }
-
 textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
 
 select {
@@ -266,12 +261,7 @@ select {
   cursor: pointer;
 }
 
-/* ── TAG SELECTOR ── */
-.tag-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
+.tag-group { display: flex; flex-wrap: wrap; gap: 8px; }
 
 .tag-opt {
   border: 1px solid var(--border);
@@ -292,7 +282,6 @@ select {
   color: #fff;
 }
 
-/* ── BUTTONS ── */
 .btn-row {
   display: flex;
   gap: 12px;
@@ -349,7 +338,6 @@ select {
 .btn-export:hover { background: #1a4c6a; }
 .btn-export:disabled { background: var(--ink-light); cursor: not-allowed; }
 
-/* ── LOADING ── */
 .loading-overlay {
   display: none;
   position: fixed;
@@ -392,7 +380,6 @@ select {
 
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
-/* ── SCENES PREVIEW ── */
 .scenes-list {
   display: flex;
   flex-direction: column;
@@ -448,23 +435,20 @@ select {
   text-transform: uppercase;
 }
 
-.scene-gen-btn {
-  position: absolute;
-  bottom: 6px;
-  right: 6px;
-  background: var(--accent);
-  color: #fff;
-  border: none;
+/* 画像生成ボタンは画像なし表示に変更（Groq版では画像生成非対応） */
+.no-image-label {
   font-family: 'JetBrains Mono', monospace;
   font-size: 9px;
+  color: var(--ink-light);
   letter-spacing: 0.08em;
+  text-align: center;
   padding: 4px 8px;
-  cursor: pointer;
-  transition: all 0.15s;
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
 }
-
-.scene-gen-btn:hover { background: #a03a1a; }
-.scene-gen-btn:disabled { background: var(--ink-light); cursor: not-allowed; }
 
 .scene-body {
   padding: 16px 18px;
@@ -536,26 +520,6 @@ select {
   align-self: flex-end;
 }
 
-/* ── IMAGE STATUS ── */
-.img-status {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(245,242,237,0.85);
-}
-
-.img-spinner {
-  width: 24px;
-  height: 24px;
-  border: 2px solid var(--border);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-/* ── GENERATE ALL BTN ── */
 .gen-all-bar {
   background: var(--surface2);
   border: 1px solid var(--border);
@@ -575,23 +539,6 @@ select {
   letter-spacing: 0.08em;
 }
 
-.btn-gen-all {
-  background: var(--gold);
-  color: var(--ink);
-  border: none;
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  padding: 8px 24px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-gen-all:hover { background: #9a7a0a; color: #fff; }
-.btn-gen-all:disabled { background: var(--ink-light); color: #fff; cursor: not-allowed; }
-
-/* ── ERROR ── */
 .error-bar {
   background: rgba(200,80,42,0.06);
   border: 1px solid rgba(200,80,42,0.25);
@@ -606,7 +553,6 @@ select {
 
 .error-bar.visible { display: block; }
 
-/* ── TOAST ── */
 .toast {
   position: fixed;
   bottom: 24px;
@@ -624,24 +570,6 @@ select {
 }
 
 .toast.show { transform: translateY(0); opacity: 1; }
-
-/* ── DIVIDER ── */
-.divider {
-  border: none;
-  border-top: 1px solid var(--border2);
-  margin: 32px 0;
-}
-
-/* ── INFO BOX ── */
-.info-box {
-  background: rgba(42,108,140,0.06);
-  border-left: 3px solid var(--accent2);
-  padding: 12px 16px;
-  font-size: 12px;
-  color: var(--ink-mid);
-  line-height: 1.6;
-  margin-bottom: 20px;
-}
 </style>
 </head>
 <body>
@@ -669,10 +597,14 @@ select {
 
   <!-- API PANEL -->
   <div class="api-panel visible" id="apiPanel">
+    <div class="groq-info">
+      ⚡ <strong>Groq API</strong>（無料）を使用します。<br>
+      <a href="https://console.groq.com" target="_blank">https://console.groq.com</a> でGoogleアカウントでサインアップ →「API Keys」→「Create API Key」でキーを取得してください。
+    </div>
     <div class="form-grid">
       <div class="field">
-        <label>Gemini API Key</label>
-        <input type="password" id="apiKeyInput" placeholder="AIza..." autocomplete="off">
+        <label>Groq API Key</label>
+        <input type="password" id="apiKeyInput" placeholder="gsk_..." autocomplete="off">
       </div>
     </div>
     <div class="btn-row">
@@ -697,7 +629,7 @@ select {
     <div class="step-line"></div>
     <div class="step" id="step3">
       <div class="step-num">3</div>
-      <div class="step-label">画像生成</div>
+      <div class="step-label">確認・編集</div>
     </div>
     <div class="step-line"></div>
     <div class="step" id="step4">
@@ -778,14 +710,14 @@ select {
     </div>
   </div>
 
-  <!-- PANEL 2+3: SCENES -->
+  <!-- PANEL 2: SCENES -->
   <div class="panel" id="panel2">
     <div class="section-title">シーン構成の確認 · 編集</div>
-    <div class="section-desc">AIが生成したシーン構成です。内容を編集してから画像を生成してください。</div>
+    <div class="section-desc">AIが生成したシーン構成です。内容を自由に編集してからPowerPointで出力してください。</div>
 
     <div class="gen-all-bar">
-      <span class="gen-all-info" id="imgProgress">画像未生成</span>
-      <button class="btn-gen-all" id="btnGenAll" onclick="generateAllImages()">✦ 全シーンの画像を生成</button>
+      <span class="gen-all-info" id="sceneInfo">シーン生成完了</span>
+      <button class="btn-secondary" onclick="regenerateScenes()">↺ シーンを再生成</button>
     </div>
 
     <div class="scenes-list" id="scenesList"></div>
@@ -811,8 +743,12 @@ let projectInfo = {};
 
 // ── INIT ──
 window.onload = () => {
-  const saved = localStorage.getItem('conte_api_key');
-  if (saved) { apiKey = saved; document.getElementById('apiKeyInput').value = saved; setConnected(true); }
+  const saved = localStorage.getItem('conte_groq_key');
+  if (saved) {
+    apiKey = saved;
+    document.getElementById('apiKeyInput').value = saved;
+    setConnected(true);
+  }
 };
 
 function toggleTag(el) { el.classList.toggle('selected'); }
@@ -825,7 +761,7 @@ function saveApiKey() {
   const v = document.getElementById('apiKeyInput').value.trim();
   if (!v) return;
   apiKey = v;
-  localStorage.setItem('conte_api_key', v);
+  localStorage.setItem('conte_groq_key', v);
   setConnected(true);
   document.getElementById('apiPanel').classList.remove('visible');
   showToast('APIキーを保存しました');
@@ -833,7 +769,7 @@ function saveApiKey() {
 
 function setConnected(ok) {
   const b = document.getElementById('apiBadge');
-  b.textContent = ok ? '✓ GEMINI CONNECTED' : '⚡ API KEY 未設定';
+  b.textContent = ok ? '✓ GROQ CONNECTED' : '⚡ API KEY 未設定';
   b.className = ok ? 'api-badge connected' : 'api-badge';
 }
 
@@ -853,7 +789,7 @@ function updateSteps(active) {
   }
 }
 
-// ── GENERATE SCENES ──
+// ── GENERATE SCENES (Groq API) ──
 async function generateScenes() {
   if (!apiKey) {
     showError('APIキーを設定してください。');
@@ -861,14 +797,15 @@ async function generateScenes() {
     return;
   }
 
-  const type = document.getElementById('videoType').value;
-  const dur = document.getElementById('duration').value;
-  const client = document.getElementById('clientName').value || '未設定';
-  const genre = document.getElementById('genre').value || '未設定';
-  const colors = document.getElementById('colors').value || '未設定';
-  const count = parseInt(document.getElementById('sceneCount').value);
-  const notes = document.getElementById('notes').value || 'なし';
-  const styles = [...document.querySelectorAll('#styleTagGroup .tag-opt.selected')].map(t => t.textContent).join('、') || '未指定';
+  const type    = document.getElementById('videoType').value;
+  const dur     = document.getElementById('duration').value;
+  const client  = document.getElementById('clientName').value || '未設定';
+  const genre   = document.getElementById('genre').value || '未設定';
+  const colors  = document.getElementById('colors').value || '未設定';
+  const count   = parseInt(document.getElementById('sceneCount').value);
+  const notes   = document.getElementById('notes').value || 'なし';
+  const styles  = [...document.querySelectorAll('#styleTagGroup .tag-opt.selected')]
+                    .map(t => t.textContent).join('、') || '未指定';
 
   projectInfo = { type, dur, client, genre, colors, count, styles, notes };
 
@@ -894,32 +831,47 @@ async function generateScenes() {
       "timing": "0:00 - 0:05",
       "description": "このシーンで何が起きるかの説明（日本語・2〜3文）",
       "camera": "カメラワーク・構図の指示（日本語・1文）",
-      "imagePrompt": "Stable Diffusion用英語プロンプト（映像フレームのビジュアル描写・スタイル・色・構図を含む・50語程度）"
+      "motionNote": "After Effectsでの実装ヒント（日本語・1文・エフェクト名など）"
     }
   ]
 }
 
-JSONのみ出力してください。\`\`\`json などのマークダウンは不要です。`;
+JSONのみ出力してください。マークダウンのコードブロック記号は不要です。`;
 
-  setLoading(true, 'シーン構成を生成中', 'Gemini が考えています...');
+  setLoading(true, 'シーン構成を生成中', 'Groq LLM が考えています...');
+  hideError();
 
   try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7,
+        max_tokens: 2048,
+      })
     });
+
     const data = await res.json();
+
     if (data.error) throw new Error(data.error.message);
 
-    let text = data.candidates[0].content.parts[0].text;
-    text = text.replace(/```json|```/g, '').trim();
+    let text = data.choices[0].message.content;
+    // マークダウンのコードブロックを除去
+    text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+
     const parsed = JSON.parse(text);
     scenes = parsed.scenes;
 
     renderScenes();
     goPanel(2);
     hideError();
+    showToast(`${scenes.length}シーンを生成しました`);
+
   } catch(e) {
     showError(`シーン生成エラー: ${e.message}`);
   } finally {
@@ -927,10 +879,19 @@ JSONのみ出力してください。\`\`\`json などのマークダウンは�
   }
 }
 
+// やり直しボタン用
+async function regenerateScenes() {
+  goPanel(1);
+}
+
 // ── RENDER SCENES ──
 function renderScenes() {
   const list = document.getElementById('scenesList');
   list.innerHTML = '';
+
+  document.getElementById('sceneInfo').textContent =
+    `${scenes.length}シーン生成完了 — 内容を編集してから出力してください`;
+
   scenes.forEach((sc, i) => {
     const card = document.createElement('div');
     card.className = 'scene-card';
@@ -943,9 +904,9 @@ function renderScenes() {
             <circle cx="10" cy="13" r="3"/>
             <path d="M2 24l7-7 5 5 4-4 7 7"/>
           </svg>
-          <span>画像未生成</span>
+          <span>イメージボード</span>
         </div>
-        <button class="scene-gen-btn" id="gen-btn-${i}" onclick="generateOneImage(${i})">▶ 生成</button>
+        <span class="no-image-label">SCENE ${String(sc.number).padStart(2,'0')}</span>
       </div>
       <div class="scene-body">
         <div class="scene-header">
@@ -964,80 +925,13 @@ function renderScenes() {
           </div>
         </div>
         <div>
-          <div class="scene-mini-label">画像生成プロンプト（英語）</div>
-          <textarea class="scene-textarea" id="sc-prompt-${i}" style="min-height:42px;">${esc(sc.imagePrompt)}</textarea>
+          <div class="scene-mini-label">AE 実装メモ</div>
+          <textarea class="scene-textarea" id="sc-motion-${i}" style="min-height:42px;">${esc(sc.motionNote || '')}</textarea>
         </div>
       </div>
     `;
     list.appendChild(card);
   });
-  updateImgProgress();
-}
-
-// ── GENERATE IMAGE (single) ──
-async function generateOneImage(idx) {
-  const prompt = document.getElementById(`sc-prompt-${idx}`).value.trim();
-  if (!prompt) return;
-
-  const btn = document.getElementById(`gen-btn-${idx}`);
-  const wrap = document.getElementById(`img-wrap-${idx}`);
-  btn.disabled = true;
-
-  // Show spinner
-  const spinner = document.createElement('div');
-  spinner.className = 'img-status';
-  spinner.innerHTML = '<div class="img-spinner"></div>';
-  wrap.appendChild(spinner);
-
-  try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        instances: [{ prompt: prompt + ', 16:9 widescreen frame, cinematic composition, high quality' }],
-        parameters: { sampleCount: 1, aspectRatio: '16:9' }
-      })
-    });
-    const data = await res.json();
-    if (data.error) throw new Error(data.error.message);
-
-    const b64 = data.predictions[0].bytesBase64Encoded;
-    const mime = data.predictions[0].mimeType || 'image/png';
-    const src = `data:${mime};base64,${b64}`;
-
-    scenes[idx].imageData = src;
-
-    // Replace placeholder with image
-    wrap.innerHTML = `<img src="${src}" alt="scene ${idx+1}">
-      <button class="scene-gen-btn" id="gen-btn-${idx}" onclick="generateOneImage(${idx})">↺ 再生成</button>`;
-
-    updateImgProgress();
-    showToast(`Scene ${idx+1} 画像生成完了`);
-  } catch(e) {
-    wrap.querySelector('.img-status')?.remove();
-    btn.disabled = false;
-    showError(`画像生成エラー (Scene ${idx+1}): ${e.message}`);
-  }
-}
-
-// ── GENERATE ALL IMAGES ──
-async function generateAllImages() {
-  const btn = document.getElementById('btnGenAll');
-  btn.disabled = true;
-  hideError();
-  for (let i = 0; i < scenes.length; i++) {
-    if (!scenes[i].imageData) {
-      await generateOneImage(i);
-      await sleep(600); // rate limit buffer
-    }
-  }
-  btn.disabled = false;
-  showToast('全画像の生成が完了しました');
-}
-
-function updateImgProgress() {
-  const done = scenes.filter(s => s.imageData).length;
-  document.getElementById('imgProgress').textContent = `画像生成: ${done} / ${scenes.length} シーン完了`;
 }
 
 // ── EXPORT PPTX ──
@@ -1050,15 +944,16 @@ async function exportPptx() {
     const pptx = new PptxGenJS();
     pptx.layout = 'LAYOUT_16x9';
 
-    // Collect current edits
+    // 編集内容を反映
     const currentScenes = scenes.map((sc, i) => ({
       ...sc,
-      title: document.getElementById(`sc-title-${i}`)?.value || sc.title,
-      description: document.getElementById(`sc-desc-${i}`)?.value || sc.description,
-      camera: document.getElementById(`sc-cam-${i}`)?.value || sc.camera,
+      title:      document.getElementById(`sc-title-${i}`)?.value  || sc.title,
+      description:document.getElementById(`sc-desc-${i}`)?.value   || sc.description,
+      camera:     document.getElementById(`sc-cam-${i}`)?.value    || sc.camera,
+      motionNote: document.getElementById(`sc-motion-${i}`)?.value || sc.motionNote || '',
     }));
 
-    // ── COVER SLIDE ──
+    // ── 表紙スライド ──
     const cover = pptx.addSlide();
     cover.background = { color: '1a1612' };
     cover.addText('STORYBOARD', {
@@ -1071,10 +966,15 @@ async function exportPptx() {
       fontSize: 18, fontFace: 'Georgia',
       color: 'c8502a', align: 'center', charSpacing: 4
     });
-    cover.addText(`${projectInfo.type} / ${projectInfo.dur}sec / ${currentScenes.length} scenes`, {
+    cover.addText(`${projectInfo.type}  /  ${projectInfo.dur}sec  /  ${currentScenes.length} scenes`, {
       x: 0.5, y: 2.8, w: 9, h: 0.4,
       fontSize: 11, fontFace: 'Courier New',
       color: '9a9088', align: 'center', charSpacing: 2
+    });
+    cover.addText(`Style: ${projectInfo.styles}`, {
+      x: 0.5, y: 3.3, w: 9, h: 0.35,
+      fontSize: 10, fontFace: 'Courier New',
+      color: '5a5248', align: 'center'
     });
     cover.addText(`Generated by CONTE  —  ${new Date().toLocaleDateString('ja-JP')}`, {
       x: 0.5, y: 4.6, w: 9, h: 0.3,
@@ -1082,106 +982,129 @@ async function exportPptx() {
       color: '5a5248', align: 'center'
     });
 
-    // ── SCENE SLIDES ──
+    // ── シーンスライド ──
     for (let i = 0; i < currentScenes.length; i++) {
       const sc = currentScenes[i];
       const slide = pptx.addSlide();
       slide.background = { color: 'fffdf8' };
 
-      // Top bar
+      // 上部バー
       slide.addShape(pptx.ShapeType.rect, {
         x: 0, y: 0, w: 10, h: 0.55,
         fill: { color: '1a1612' }
       });
 
-      // Scene number
+      // シーン番号
       slide.addText(`SCENE ${String(sc.number).padStart(2,'0')}`, {
         x: 0.25, y: 0.08, w: 1.5, h: 0.38,
         fontSize: 13, fontFace: 'Courier New',
         color: 'c8502a', bold: true, charSpacing: 2
       });
 
-      // Scene title
+      // シーンタイトル
       slide.addText(sc.title, {
         x: 1.9, y: 0.08, w: 5.5, h: 0.38,
         fontSize: 14, fontFace: 'Georgia',
         color: 'f5f2ed', align: 'left'
       });
 
-      // Timing
+      // タイミング
       slide.addText(sc.timing, {
         x: 8.0, y: 0.08, w: 1.8, h: 0.38,
         fontSize: 11, fontFace: 'Courier New',
         color: 'b8960c', align: 'right'
       });
 
-      // Image area (left)
-      if (sc.imageData) {
-        slide.addImage({
-          data: sc.imageData,
-          x: 0.3, y: 0.75, w: 5.2, h: 2.93
-        });
-      } else {
-        slide.addShape(pptx.ShapeType.rect, {
-          x: 0.3, y: 0.75, w: 5.2, h: 2.93,
-          fill: { color: 'e8e2d8' },
-          line: { color: 'd8d0c4', width: 1 }
-        });
-        slide.addText('[ 画像未生成 ]', {
-          x: 0.3, y: 0.75, w: 5.2, h: 2.93,
-          fontSize: 12, fontFace: 'Courier New',
-          color: '9a9088', align: 'center', valign: 'middle'
-        });
-      }
+      // 左: イメージボードエリア（プレースホルダー）
+      slide.addShape(pptx.ShapeType.rect, {
+        x: 0.3, y: 0.75, w: 5.2, h: 2.93,
+        fill: { color: 'e8e2d8' },
+        line: { color: 'd8d0c4', width: 1 }
+      });
+      slide.addText('[ IMAGE BOARD ]', {
+        x: 0.3, y: 0.75, w: 5.2, h: 2.4,
+        fontSize: 12, fontFace: 'Courier New',
+        color: '9a9088', align: 'center', valign: 'middle'
+      });
+      slide.addText(`Scene ${sc.number} — ${sc.title}`, {
+        x: 0.3, y: 3.3, w: 5.2, h: 0.38,
+        fontSize: 9, fontFace: 'Courier New',
+        color: 'b8960c', align: 'center'
+      });
 
-      // Right panel - Description
+      // 右: シーン説明
       slide.addText('シーン説明', {
         x: 5.8, y: 0.75, w: 3.9, h: 0.28,
         fontSize: 8, fontFace: 'Courier New',
         color: '9a9088', charSpacing: 2
       });
       slide.addText(sc.description, {
-        x: 5.8, y: 1.05, w: 3.9, h: 1.1,
+        x: 5.8, y: 1.05, w: 3.9, h: 1.0,
         fontSize: 11, fontFace: 'Meiryo',
         color: '1a1612', align: 'left', valign: 'top',
         wrap: true, lineSpacingMultiple: 1.3
       });
 
-      // Right panel - Camera
+      // 区切り線
       slide.addShape(pptx.ShapeType.line, {
-        x: 5.8, y: 2.2, w: 3.9, h: 0,
+        x: 5.8, y: 2.1, w: 3.9, h: 0,
         line: { color: 'd8d0c4', width: 0.5 }
       });
+
+      // 右: カメラワーク
       slide.addText('カメラワーク', {
-        x: 5.8, y: 2.28, w: 3.9, h: 0.28,
+        x: 5.8, y: 2.18, w: 3.9, h: 0.28,
         fontSize: 8, fontFace: 'Courier New',
         color: '9a9088', charSpacing: 2
       });
       slide.addText(sc.camera, {
-        x: 5.8, y: 2.56, w: 3.9, h: 0.8,
+        x: 5.8, y: 2.46, w: 3.9, h: 0.65,
         fontSize: 11, fontFace: 'Meiryo',
         color: '2a6c8c', align: 'left', valign: 'top',
         wrap: true, lineSpacingMultiple: 1.3
       });
 
-      // Bottom bar
+      // 区切り線
+      slide.addShape(pptx.ShapeType.line, {
+        x: 5.8, y: 3.15, w: 3.9, h: 0,
+        line: { color: 'd8d0c4', width: 0.5 }
+      });
+
+      // 右: AE実装メモ
+      slide.addText('AE 実装メモ', {
+        x: 5.8, y: 3.23, w: 3.9, h: 0.28,
+        fontSize: 8, fontFace: 'Courier New',
+        color: '9a9088', charSpacing: 2
+      });
+      slide.addText(sc.motionNote || '—', {
+        x: 5.8, y: 3.51, w: 3.9, h: 0.95,
+        fontSize: 10, fontFace: 'Meiryo',
+        color: 'b8960c', align: 'left', valign: 'top',
+        wrap: true, lineSpacingMultiple: 1.3,
+        italic: true
+      });
+
+      // 下部バー
       slide.addShape(pptx.ShapeType.rect, {
         x: 0, y: 4.85, w: 10, h: 0.65,
         fill: { color: 'f0ece5' }
       });
-      slide.addText(`${projectInfo.client || 'CONTE'}  ·  ${projectInfo.type}  ·  ${new Date().toLocaleDateString('ja-JP')}`, {
-        x: 0.3, y: 4.88, w: 8, h: 0.38,
-        fontSize: 9, fontFace: 'Courier New',
-        color: '9a9088'
-      });
-      slide.addText(`${i+1} / ${currentScenes.length}`, {
+      slide.addText(
+        `${projectInfo.client || 'CONTE'}  ·  ${projectInfo.type}  ·  ${new Date().toLocaleDateString('ja-JP')}`,
+        {
+          x: 0.3, y: 4.88, w: 8, h: 0.38,
+          fontSize: 9, fontFace: 'Courier New',
+          color: '9a9088'
+        }
+      );
+      slide.addText(`${i + 1} / ${currentScenes.length}`, {
         x: 8.5, y: 4.88, w: 1.2, h: 0.38,
         fontSize: 9, fontFace: 'Courier New',
         color: '9a9088', align: 'right'
       });
     }
 
-    const filename = `CONTE_${(projectInfo.client || 'storyboard').replace(/\s/g,'_')}_${new Date().toISOString().slice(0,10)}.pptx`;
+    const filename = `CONTE_${(projectInfo.client || 'storyboard').replace(/\s/g, '_')}_${new Date().toISOString().slice(0, 10)}.pptx`;
     await pptx.writeFile({ fileName: filename });
     showToast('PowerPoint を保存しました');
     updateSteps(4);
@@ -1195,7 +1118,7 @@ async function exportPptx() {
 }
 
 // ── UTILS ──
-function setLoading(on, title='', sub='') {
+function setLoading(on, title = '', sub = '') {
   const ov = document.getElementById('loadingOverlay');
   ov.classList.toggle('visible', on);
   if (on) {
@@ -1223,10 +1146,8 @@ function showToast(msg) {
 }
 
 function esc(s) {
-  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
-
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 </script>
 </body>
 </html>
