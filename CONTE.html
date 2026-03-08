@@ -593,7 +593,7 @@ select {
 <header>
   <div class="logo">
     <span class="logo-main">C<em>O</em>NTE</span>
-    <span class="logo-sub">Storyboard Generator <span style="color:var(--accent);margin-left:8px;">v2.3</span></span>
+    <span class="logo-sub">Storyboard Generator <span style="color:var(--accent);margin-left:8px;">v2.5</span></span>
   </div>
   <button class="api-badge" id="apiBadge" onclick="toggleApiPanel()">⚡ API KEY 未設定</button>
 </header>
@@ -910,28 +910,57 @@ async function generateOneImage(idx) {
     const seed    = Math.floor(Math.random() * 999999);
     const url     = `https://image.pollinations.ai/prompt/${encoded}?width=960&height=540&seed=${seed}&nologo=true`;
 
-    // fetch で ArrayBuffer として取得 → base64 変換（Canvas CORS問題を回避）
-    const controller = new AbortController();
-    const timeoutId  = setTimeout(() => controller.abort(), 40000);
-
+    // fetch で ArrayBuffer として取得 → base64 変換（リトライあり）
     let dataUrl;
-    try {
-      const resp = await fetch(url, { signal: controller.signal });
-      clearTimeout(timeoutId);
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const buffer = await resp.arrayBuffer();
-      const bytes  = new Uint8Array(buffer);
-      let binary   = '';
-      const chunk  = 8192;
-      for (let i = 0; i < bytes.length; i += chunk) {
-        binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+    const MAX_RETRY = 4;
+    for (let attempt = 1; attempt <= MAX_RETRY; attempt++) {
+      try {
+        // 429対策: 試行ごとに待機（初回0秒、2回目5秒、3回目10秒、4回目15秒）
+        if (attempt > 1) {
+          const wait = (attempt - 1) * 5000;
+          const spinnerEl = document.getElementById(`spinner-${idx}`);
+          if (spinnerEl) {
+            const msg = spinnerEl.querySelector('.retry-msg') || document.createElement('div');
+            msg.className = 'retry-msg';
+            msg.style.cssText = 'color:#9a9088;font-size:10px;font-family:monospace;margin-top:8px;';
+            msg.textContent = `再試行 ${attempt}/${MAX_RETRY}... (${wait/1000}秒待機)`;
+            if (!spinnerEl.querySelector('.retry-msg')) spinnerEl.appendChild(msg);
+          }
+          await new Promise(r => setTimeout(r, wait));
+        }
+
+        const controller = new AbortController();
+        const timeoutId  = setTimeout(() => controller.abort(), 45000);
+        // seedを毎回変えてキャッシュ回避
+        const retrySeed = Math.floor(Math.random() * 999999);
+        const retryUrl  = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt + ', 16:9 cinematic, high quality')}&width=960&height=540&seed=${retrySeed}&nologo=true`;
+
+        const resp = await fetch(retryUrl, { signal: controller.signal });
+        clearTimeout(timeoutId);
+
+        if (resp.status === 429) {
+          if (attempt === MAX_RETRY) throw new Error('レート制限 (429): 少し時間をおいてから再試行してください');
+          continue; // 次のリトライへ
+        }
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+        const buffer = await resp.arrayBuffer();
+        const bytes  = new Uint8Array(buffer);
+        let binary   = '';
+        const chunk  = 8192;
+        for (let i = 0; i < bytes.length; i += chunk) {
+          binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+        }
+        const b64  = btoa(binary);
+        const mime = resp.headers.get('content-type') || 'image/jpeg';
+        dataUrl = `data:${mime};base64,${b64}`;
+        break; // 成功したらループを抜ける
+
+      } catch(fetchErr) {
+        if (attempt === MAX_RETRY || !fetchErr.message.includes('429')) {
+          throw new Error('画像の取得に失敗しました: ' + fetchErr.message);
+        }
       }
-      const b64  = btoa(binary);
-      const mime = resp.headers.get('content-type') || 'image/jpeg';
-      dataUrl = `data:${mime};base64,${b64}`;
-    } catch(fetchErr) {
-      clearTimeout(timeoutId);
-      throw new Error('画像の取得に失敗しました: ' + fetchErr.message);
     }
 
     scenes[idx].imageData = dataUrl;
@@ -968,7 +997,7 @@ async function generateAllImages() {
   for (let i = 0; i < scenes.length; i++) {
     if (!scenes[i].imageData) {
       await generateOneImage(i);
-      await new Promise(r => setTimeout(r, 800));
+      await new Promise(r => setTimeout(r, 3000)); // Pollinations レート制限対策
     }
   }
   if (btn) btn.disabled = false;
@@ -982,9 +1011,86 @@ function updateImgProgress() {
     `画像生成: ${done} / ${total} シーン完了`;
 }
 
-// やり直しボタン用
+// シーンを再生成（案件情報はそのまま・パネル1に戻らない）
 async function regenerateScenes() {
-  goPanel(1);
+  if (!apiKey) {
+    showError('APIキーを設定してください。');
+    return;
+  }
+  if (!projectInfo || !projectInfo.type) {
+    showError('案件情報がありません。最初からやり直してください。');
+    goPanel(1);
+    return;
+  }
+
+  const { type, dur, client, genre, colors, count, styles, notes } = projectInfo;
+
+  const prompt = `あなたはプロの映像ディレクターです。以下の案件情報をもとに、映像絵コンテのシーン構成をJSON形式で生成してください。
+
+## 案件情報
+- 制作物タイプ: ${type}
+- チャンネル名/クライアント: ${client}
+- ジャンル: ${genre}
+- 総尺: ${dur}秒
+- シーン数: ${count}
+- ビジュアルスタイル: ${styles}
+- メインカラー: ${colors}
+- 注意事項: ${notes}
+
+## 出力形式（JSONのみ・他の文章は一切不要）
+{
+  "title": "絵コンテタイトル",
+  "scenes": [
+    {
+      "number": 1,
+      "title": "シーンタイトル（日本語・短め）",
+      "timing": "0:00 - 0:05",
+      "description": "このシーンで何が起きるかの説明（日本語・2〜3文）",
+      "camera": "カメラワーク・構図の指示（日本語・1文）",
+      "imagePrompt": "Stable Diffusion用英語プロンプト（映像フレームのビジュアル描写・スタイル・色・構図を含む・40語程度）",
+      "motionNote": "After Effectsでの実装ヒント（日本語・1文・エフェクト名など）"
+    }
+  ]
+}
+
+JSONのみ出力してください。マークダウンのコードブロック記号は不要です。`;
+
+  setLoading(true, 'シーンを再生成中', 'Groq LLM が考えています...');
+  hideError();
+
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.85,
+        max_tokens: 2048,
+      })
+    });
+
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+
+    let text = data.choices[0].message.content;
+    text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+
+    const parsed = JSON.parse(text);
+    scenes = parsed.scenes;
+
+    renderScenes();
+    hideError();
+    showToast(`${scenes.length}シーンを再生成しました`);
+
+  } catch(e) {
+    showError(`再生成エラー: ${e.message}`);
+  } finally {
+    setLoading(false);
+  }
 }
 
 // ── RENDER SCENES ──
