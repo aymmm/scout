@@ -593,7 +593,7 @@ select {
 <header>
   <div class="logo">
     <span class="logo-main">C<em>O</em>NTE</span>
-    <span class="logo-sub">Storyboard Generator <span style="color:var(--accent);margin-left:8px;">v2.2</span></span>
+    <span class="logo-sub">Storyboard Generator <span style="color:var(--accent);margin-left:8px;">v2.3</span></span>
   </div>
   <button class="api-badge" id="apiBadge" onclick="toggleApiPanel()">⚡ API KEY 未設定</button>
 </header>
@@ -910,23 +910,29 @@ async function generateOneImage(idx) {
     const seed    = Math.floor(Math.random() * 999999);
     const url     = `https://image.pollinations.ai/prompt/${encoded}?width=960&height=540&seed=${seed}&nologo=true`;
 
-    // img タグで読み込み（CORSを回避するため fetch ではなく Image を使用）
-    const imgEl = await new Promise((resolve, reject) => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload  = () => resolve(img);
-      img.onerror = () => reject(new Error('画像の読み込みに失敗しました'));
-      img.src = url;
-      setTimeout(() => reject(new Error('タイムアウト（30秒）')), 30000);
-    });
+    // fetch で ArrayBuffer として取得 → base64 変換（Canvas CORS問題を回避）
+    const controller = new AbortController();
+    const timeoutId  = setTimeout(() => controller.abort(), 40000);
 
-    // Canvas で base64 に変換（PPTX埋め込み用）
-    const canvas = document.createElement('canvas');
-    canvas.width  = imgEl.naturalWidth  || 960;
-    canvas.height = imgEl.naturalHeight || 540;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(imgEl, 0, 0);
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+    let dataUrl;
+    try {
+      const resp = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const buffer = await resp.arrayBuffer();
+      const bytes  = new Uint8Array(buffer);
+      let binary   = '';
+      const chunk  = 8192;
+      for (let i = 0; i < bytes.length; i += chunk) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+      }
+      const b64  = btoa(binary);
+      const mime = resp.headers.get('content-type') || 'image/jpeg';
+      dataUrl = `data:${mime};base64,${b64}`;
+    } catch(fetchErr) {
+      clearTimeout(timeoutId);
+      throw new Error('画像の取得に失敗しました: ' + fetchErr.message);
+    }
 
     scenes[idx].imageData = dataUrl;
 
