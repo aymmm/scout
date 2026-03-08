@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SCOUT — YouTube Research Tool</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+JP:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #1a1a24;
+    --border: #2a2a3a;
+    --accent: #00e5ff;
+    --accent2: #ff3d6b;
+    --text: #e8e8f0;
+    --text-muted: #666680;
+    --text-dim: #444458;
+    --success: #00ff88;
+    --card-bg: #13131e;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans JP', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── GRID BACKGROUND ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── HEADER ── */
+  header {
+    position: relative;
+    z-index: 10;
+    padding: 24px 32px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .logo {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+
+  .logo-main {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(36px, 6vw, 56px);
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    line-height: 1;
+    text-shadow: 0 0 30px rgba(0,229,255,0.4);
+  }
+
+  .logo-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  .api-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 4px 12px;
+    border-radius: 2px;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--surface);
+    letter-spacing: 0.1em;
+  }
+
+  .api-badge.connected {
+    border-color: var(--success);
+    color: var(--success);
+    text-shadow: 0 0 10px rgba(0,255,136,0.4);
+  }
+
+  .api-badge:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* ── MAIN CONTAINER ── */
+  main {
+    position: relative;
+    z-index: 5;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+
+  /* ── API KEY PANEL ── */
+  .api-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent2);
+    padding: 20px 24px;
+    margin-bottom: 32px;
+    display: none;
+  }
+
+  .api-panel.visible { display: block; }
+
+  .api-panel label {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    text-transform: uppercase;
+  }
+
+  .api-panel-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .api-input {
+    flex: 1;
+    min-width: 200px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    letter-spacing: 0.05em;
+  }
+
+  .api-input:focus { border-color: var(--accent); }
+
+  .btn-save {
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    letter-spacing: 0.1em;
+    padding: 10px 24px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .btn-save:hover {
+    background: #fff;
+    box-shadow: 0 0 20px rgba(0,229,255,0.5);
+  }
+
+  /* ── SEARCH AREA ── */
+  .search-area {
+    margin-bottom: 40px;
+  }
+
+  .search-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    display: block;
+  }
+
+  .search-row {
+    display: flex;
+    gap: 0;
+    margin-bottom: 16px;
+  }
+
+  .search-input {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-right: none;
+    color: var(--text);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 15px;
+    padding: 14px 20px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .search-input:focus { border-color: var(--accent); }
+  .search-input::placeholder { color: var(--text-dim); }
+
+  .btn-search {
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 0.12em;
+    padding: 14px 32px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .btn-search:hover {
+    background: #fff;
+    box-shadow: 0 0 30px rgba(0,229,255,0.6);
+  }
+
+  .btn-search:disabled {
+    background: var(--text-dim);
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  /* ── FILTER ROW ── */
+  .filter-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .filter-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+  }
+
+  .filter-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-transform: uppercase;
+  }
+
+  .filter-btn:hover, .filter-btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(0,229,255,0.08);
+  }
+
+  .result-count {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  /* ── RESULTS GRID ── */
+  .results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+
+  /* ── VIDEO CARD ── */
+  .video-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    transition: all 0.2s;
+    animation: fadeUp 0.3s ease both;
+    cursor: pointer;
+    text-decoration: none;
+    display: block;
+    position: relative;
+  }
+
+  .video-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4), 0 0 0 1px rgba(0,229,255,0.2);
+  }
+
+  .video-card:hover .card-overlay { opacity: 1; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .thumb-wrap {
+    position: relative;
+    aspect-ratio: 16/9;
+    overflow: hidden;
+    background: var(--surface2);
+  }
+
+  .thumb-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.3s;
+  }
+
+  .video-card:hover .thumb-wrap img { transform: scale(1.04); }
+
+  .card-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,229,255,0.12);
+    opacity: 0;
+    transition: opacity 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .play-icon {
+    width: 44px;
+    height: 44px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .play-icon svg { fill: var(--bg); margin-left: 3px; }
+
+  .duration-badge {
+    position: absolute;
+    bottom: 6px;
+    right: 8px;
+    background: rgba(0,0,0,0.85);
+    color: #fff;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 2px 6px;
+    letter-spacing: 0.05em;
+  }
+
+  .card-body {
+    padding: 14px 16px 16px;
+  }
+
+  .card-title {
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.5;
+    color: var(--text);
+    margin-bottom: 10px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .card-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 8px;
+  }
+
+  .card-channel {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+  }
+
+  .card-stats {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+
+  .stat-views {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+  }
+
+  .stat-date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+
+  /* ── MEMO TAG ── */
+  .card-tag-row {
+    margin-top: 10px;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    padding: 3px 8px;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    text-transform: uppercase;
+    transition: all 0.15s;
+    cursor: pointer;
+  }
+
+  .tag:hover, .tag.active {
+    border-color: var(--accent2);
+    color: var(--accent2);
+    background: rgba(255,61,107,0.08);
+  }
+
+  /* ── STATE MESSAGES ── */
+  .state-msg {
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--text-dim);
+  }
+
+  .state-msg .icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    display: block;
+  }
+
+  .state-msg p {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.1em;
+  }
+
+  .state-msg .hint {
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  /* ── LOADING ── */
+  .loading-wrap {
+    display: none;
+    text-align: center;
+    padding: 60px 20px;
+  }
+
+  .loading-wrap.visible { display: block; }
+
+  .scanner {
+    width: 60px;
+    height: 60px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 20px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* ── ERROR ── */
+  .error-msg {
+    background: rgba(255,61,107,0.08);
+    border: 1px solid rgba(255,61,107,0.3);
+    color: var(--accent2);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    padding: 14px 18px;
+    margin-bottom: 24px;
+    letter-spacing: 0.05em;
+    display: none;
+  }
+
+  .error-msg.visible { display: block; }
+
+  /* ── COPY TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--success);
+    color: var(--bg);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    padding: 10px 20px;
+    z-index: 100;
+    transform: translateY(60px);
+    opacity: 0;
+    transition: all 0.3s;
+  }
+
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  /* ── FOOTER ── */
+  footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, var(--bg) 60%);
+    padding: 20px 32px 16px;
+    display: flex;
+    justify-content: flex-end;
+    z-index: 20;
+    pointer-events: none;
+  }
+
+  .quota-info {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+    pointer-events: all;
+  }
+
+  /* ── NEXT PAGE ── */
+  .load-more-wrap {
+    text-align: center;
+    margin-top: 32px;
+    display: none;
+  }
+
+  .load-more-wrap.visible { display: block; }
+
+  .btn-more {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    letter-spacing: 0.15em;
+    padding: 12px 40px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-more:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 600px) {
+    header { padding: 16px; }
+    main { padding: 20px 16px 80px; }
+    .search-row { flex-direction: column; }
+    .search-input { border-right: 1px solid var(--border); border-bottom: none; }
+    .btn-search { padding: 12px; }
+    .results-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span class="logo-main">SCOUT</span>
+    <span class="logo-sub">YouTube Research Tool</span>
+  </div>
+  <button class="api-badge" id="apiBadge" onclick="toggleApiPanel()">⚡ API KEY 未設定</button>
+</header>
+
+<main>
+
+  <!-- API KEY PANEL -->
+  <div class="api-panel visible" id="apiPanel">
+    <label>▸ YOUTUBE DATA API KEY</label>
+    <div class="api-panel-row">
+      <input type="password" class="api-input" id="apiKeyInput" placeholder="AIza..." autocomplete="off">
+      <button class="btn-save" onclick="saveApiKey()">SAVE</button>
+    </div>
+  </div>
+
+  <!-- SEARCH AREA -->
+  <div class="search-area">
+    <span class="search-label">▸ SEARCH QUERY</span>
+    <div class="search-row">
+      <input type="text" class="search-input" id="queryInput"
+        placeholder="例：VTuber OP アニメーション / ゲーム実況 オープニング / logo animation intro"
+        onkeydown="if(event.key==='Enter')doSearch()">
+      <button class="btn-search" id="searchBtn" onclick="doSearch()">SEARCH</button>
+    </div>
+    <div class="filter-row">
+      <span class="filter-label">SORT:</span>
+      <button class="filter-btn active" data-sort="relevance" onclick="setSort(this,'relevance')">関連度</button>
+      <button class="filter-btn" data-sort="viewCount" onclick="setSort(this,'viewCount')">再生数</button>
+      <button class="filter-btn" data-sort="date" onclick="setSort(this,'date')">新着</button>
+      <button class="filter-btn" data-sort="rating" onclick="setSort(this,'rating')">評価</button>
+      <span class="result-count" id="resultCount"></span>
+    </div>
+  </div>
+
+  <!-- ERROR -->
+  <div class="error-msg" id="errorMsg"></div>
+
+  <!-- LOADING -->
+  <div class="loading-wrap" id="loadingWrap">
+    <div class="scanner"></div>
+    <div class="loading-text">Scanning YouTube...</div>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="results-grid" id="resultsGrid"></div>
+
+  <!-- EMPTY STATE -->
+  <div class="state-msg" id="emptyState">
+    <span class="icon">🎬</span>
+    <p>キーワードを入力して検索してください</p>
+    <p class="hint">VTuber OP / ゲーム実況 イントロ / logo animation など</p>
+  </div>
+
+  <!-- LOAD MORE -->
+  <div class="load-more-wrap" id="loadMoreWrap">
+    <button class="btn-more" onclick="loadMore()">LOAD MORE</button>
+  </div>
+
+</main>
+
+<footer>
+  <span class="quota-info" id="quotaInfo">YouTube Data API: 1検索 = 100 units / 日次上限 10,000 units</span>
+</footer>
+
+<!-- TOAST -->
+<div class="toast" id="toast">URL コピーしました</div>
+
+<script>
+  let apiKey = '';
+  let currentSort = 'relevance';
+  let nextPageToken = '';
+  let lastQuery = '';
+  let searchCount = 0;
+  const TAGS = ['参考', '競合', 'スタイル', 'NGパターン'];
+
+  // ── INIT ──
+  window.onload = () => {
+    const saved = localStorage.getItem('scout_api_key');
+    if (saved) {
+      apiKey = saved;
+      document.getElementById('apiKeyInput').value = saved;
+      setConnected(true);
+    }
+  };
+
+  function toggleApiPanel() {
+    const panel = document.getElementById('apiPanel');
+    panel.classList.toggle('visible');
+  }
+
+  function saveApiKey() {
+    const val = document.getElementById('apiKeyInput').value.trim();
+    if (!val) return;
+    apiKey = val;
+    localStorage.setItem('scout_api_key', val);
+    setConnected(true);
+    document.getElementById('apiPanel').classList.remove('visible');
+    showToast('APIキーを保存しました');
+  }
+
+  function setConnected(ok) {
+    const badge = document.getElementById('apiBadge');
+    badge.textContent = ok ? '✓ API CONNECTED' : '⚡ API KEY 未設定';
+    badge.className = ok ? 'api-badge connected' : 'api-badge';
+  }
+
+  function setSort(el, val) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    currentSort = val;
+    if (lastQuery) doSearch();
+  }
+
+  // ── SEARCH ──
+  async function doSearch() {
+    const q = document.getElementById('queryInput').value.trim();
+    if (!q) return;
+    if (!apiKey) {
+      showError('APIキーを設定してください。右上の [API KEY] ボタンから入力できます。');
+      document.getElementById('apiPanel').classList.add('visible');
+      return;
+    }
+    lastQuery = q;
+    nextPageToken = '';
+    document.getElementById('resultsGrid').innerHTML = '';
+    hideError();
+    setLoading(true);
+    setEmptyState(false);
+    document.getElementById('loadMoreWrap').classList.remove('visible');
+    await fetchVideos(false);
+  }
+
+  async function loadMore() {
+    if (!nextPageToken) return;
+    await fetchVideos(true);
+  }
+
+  async function fetchVideos(append) {
+    searchCount++;
+    setLoading(true);
+    try {
+      // Search
+      let searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&q=${encodeURIComponent(lastQuery)}&maxResults=12&order=${currentSort}&key=${apiKey}`;
+      if (nextPageToken) searchUrl += `&pageToken=${nextPageToken}`;
+
+      const searchRes = await fetch(searchUrl);
+      const searchData = await searchRes.json();
+
+      if (searchData.error) {
+        throw new Error(searchData.error.message);
+      }
+
+      nextPageToken = searchData.nextPageToken || '';
+
+      const ids = searchData.items.map(i => i.id.videoId).join(',');
+
+      // Video details (views, duration)
+      const detailUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&id=${ids}&key=${apiKey}`;
+      const detailRes = await fetch(detailUrl);
+      const detailData = await detailRes.json();
+
+      const total = searchData.pageInfo?.totalResults || 0;
+      document.getElementById('resultCount').textContent = `約 ${total.toLocaleString()} 件`;
+
+      renderCards(detailData.items, append);
+      document.getElementById('loadMoreWrap').classList.toggle('visible', !!nextPageToken);
+      document.getElementById('quotaInfo').textContent =
+        `このセッション: ${searchCount} 回検索 (約 ${searchCount * 200} units 消費) | 日次上限: 10,000 units`;
+
+    } catch(e) {
+      showError(`エラー: ${e.message}`);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function renderCards(items, append) {
+    const grid = document.getElementById('resultsGrid');
+    if (!append) grid.innerHTML = '';
+
+    if (!items || items.length === 0) {
+      setEmptyState(true, '検索結果がありませんでした');
+      return;
+    }
+
+    items.forEach((item, i) => {
+      const vid = item.id;
+      const sn = item.snippet;
+      const st = item.statistics || {};
+      const cd = item.contentDetails || {};
+
+      const thumb = sn.thumbnails?.medium?.url || sn.thumbnails?.default?.url || '';
+      const title = sn.title || '';
+      const channel = sn.channelTitle || '';
+      const views = parseInt(st.viewCount || 0);
+      const publishedAt = sn.publishedAt ? sn.publishedAt.slice(0,10) : '';
+      const duration = formatDuration(cd.duration || '');
+      const url = `https://www.youtube.com/watch?v=${vid}`;
+
+      const card = document.createElement('a');
+      card.className = 'video-card';
+      card.href = url;
+      card.target = '_blank';
+      card.style.animationDelay = `${(i % 12) * 40}ms`;
+      card.innerHTML = `
+        <div class="thumb-wrap">
+          <img src="${escHtml(thumb)}" alt="" loading="lazy" onerror="this.style.opacity=0">
+          <div class="card-overlay">
+            <div class="play-icon">
+              <svg width="16" height="16" viewBox="0 0 16 16"><polygon points="3,2 14,8 3,14"/></svg>
+            </div>
+          </div>
+          ${duration ? `<span class="duration-badge">${escHtml(duration)}</span>` : ''}
+        </div>
+        <div class="card-body">
+          <div class="card-title">${escHtml(title)}</div>
+          <div class="card-meta">
+            <span class="card-channel">${escHtml(channel)}</span>
+            <div class="card-stats">
+              <span class="stat-views">${formatViews(views)}</span>
+              <span class="stat-date">${publishedAt}</span>
+            </div>
+          </div>
+          <div class="card-tag-row" onclick="event.preventDefault()">
+            ${TAGS.map(t => `<span class="tag" onclick="toggleTag(this,'${escHtml(t)}')">${escHtml(t)}</span>`).join('')}
+            <span class="tag" title="URLをコピー" onclick="copyUrl('${escHtml(url)}')">📋 コピー</span>
+          </div>
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+  }
+
+  // ── HELPERS ──
+  function formatViews(n) {
+    if (!n) return '---';
+    if (n >= 1000000) return (n/1000000).toFixed(1) + 'M views';
+    if (n >= 10000) return Math.floor(n/1000) + 'K views';
+    if (n >= 1000) return (n/1000).toFixed(1) + 'K views';
+    return n.toLocaleString() + ' views';
+  }
+
+  function formatDuration(iso) {
+    if (!iso) return '';
+    const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+    if (!m) return '';
+    const h = parseInt(m[1]||0), min = parseInt(m[2]||0), s = parseInt(m[3]||0);
+    if (h > 0) return `${h}:${String(min).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    return `${min}:${String(s).padStart(2,'0')}`;
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function toggleTag(el, tag) {
+    el.classList.toggle('active');
+  }
+
+  function copyUrl(url) {
+    navigator.clipboard.writeText(url).then(() => showToast('URL コピーしました'));
+  }
+
+  function setLoading(on) {
+    document.getElementById('loadingWrap').classList.toggle('visible', on);
+    document.getElementById('searchBtn').disabled = on;
+  }
+
+  function setEmptyState(on, msg) {
+    const el = document.getElementById('emptyState');
+    if (on) {
+      el.innerHTML = `<span class="icon">🔍</span><p>${msg || 'キーワードを入力して検索してください'}</p>`;
+      el.style.display = 'block';
+    } else {
+      el.style.display = 'none';
+    }
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('errorMsg');
+    el.textContent = msg;
+    el.classList.add('visible');
+  }
+
+  function hideError() {
+    document.getElementById('errorMsg').classList.remove('visible');
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+</script>
+</body>
+</html>
