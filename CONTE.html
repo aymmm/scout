@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CONTE — Storyboard Generator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundled.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=Noto+Sans+JP:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f5f2ed;
+  --surface: #ffffff;
+  --surface2: #f0ece5;
+  --border: #d8d0c4;
+  --border2: #e8e2d8;
+  --ink: #1a1612;
+  --ink-mid: #5a5248;
+  --ink-light: #9a9088;
+  --accent: #c8502a;
+  --accent2: #2a6c8c;
+  --gold: #b8960c;
+  --success: #2a7c4a;
+  --card: #fffdf8;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Noto Sans JP', sans-serif;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* Paper texture overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.6;
+}
+
+/* ── HEADER ── */
+header {
+  position: relative;
+  z-index: 10;
+  border-bottom: 1px solid var(--border);
+  padding: 20px 32px;
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.logo {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+}
+
+.logo-main {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
+  font-size: clamp(32px, 5vw, 48px);
+  letter-spacing: 0.25em;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.logo-main em {
+  color: var(--accent);
+  font-style: normal;
+}
+
+.logo-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--ink-light);
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+}
+
+.api-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  padding: 5px 14px;
+  border: 1px solid var(--border);
+  color: var(--ink-light);
+  cursor: pointer;
+  background: transparent;
+  letter-spacing: 0.1em;
+  transition: all 0.2s;
+}
+
+.api-badge:hover { border-color: var(--accent); color: var(--accent); }
+.api-badge.connected { border-color: var(--success); color: var(--success); }
+
+/* ── MAIN ── */
+main {
+  position: relative;
+  z-index: 5;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 40px 24px 100px;
+}
+
+/* ── STEP INDICATOR ── */
+.steps {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 40px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.step-num {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--ink-light);
+  background: var(--surface);
+  transition: all 0.3s;
+}
+
+.step-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--ink-light);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.step-line {
+  width: 32px;
+  height: 1px;
+  background: var(--border);
+  flex-shrink: 0;
+  margin: 0 4px;
+}
+
+.step.active .step-num {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.step.active .step-label { color: var(--accent); }
+.step.done .step-num { background: var(--success); border-color: var(--success); color: #fff; }
+.step.done .step-label { color: var(--success); }
+
+/* ── PANELS ── */
+.panel {
+  display: none;
+  animation: fadeIn 0.3s ease;
+}
+
+.panel.active { display: block; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── API PANEL ── */
+.api-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  padding: 20px 24px;
+  margin-bottom: 32px;
+  display: none;
+}
+
+.api-panel.visible { display: block; }
+
+/* ── SECTION TITLE ── */
+.section-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 400;
+  font-size: 22px;
+  letter-spacing: 0.1em;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+
+.section-desc {
+  font-size: 12px;
+  color: var(--ink-light);
+  margin-bottom: 24px;
+  letter-spacing: 0.02em;
+}
+
+/* ── FORM ── */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.form-grid.single { grid-template-columns: 1fr; }
+
+@media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field.full { grid-column: 1 / -1; }
+
+label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--ink-mid);
+  text-transform: uppercase;
+}
+
+input[type=text],
+input[type=password],
+input[type=number],
+select,
+textarea {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--ink);
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 14px;
+  padding: 10px 14px;
+  outline: none;
+  transition: border-color 0.2s;
+  width: 100%;
+  -webkit-appearance: none;
+}
+
+input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+input::placeholder, textarea::placeholder { color: var(--ink-light); }
+
+textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
+
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M0 0l6 8 6-8z' fill='%239a9088'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+  cursor: pointer;
+}
+
+/* ── TAG SELECTOR ── */
+.tag-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tag-opt {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--ink-mid);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-transform: uppercase;
+}
+
+.tag-opt:hover, .tag-opt.selected {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* ── BUTTONS ── */
+.btn-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+  flex-wrap: wrap;
+}
+
+.btn-primary {
+  background: var(--ink);
+  color: var(--bg);
+  border: none;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  padding: 12px 32px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary:hover { background: var(--accent); }
+.btn-primary:disabled { background: var(--ink-light); cursor: not-allowed; }
+
+.btn-secondary {
+  background: transparent;
+  color: var(--ink-mid);
+  border: 1px solid var(--border);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  padding: 12px 24px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-secondary:hover { border-color: var(--ink); color: var(--ink); }
+
+.btn-export {
+  background: var(--accent2);
+  color: #fff;
+  border: none;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  padding: 12px 32px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-export:hover { background: #1a4c6a; }
+.btn-export:disabled { background: var(--ink-light); cursor: not-allowed; }
+
+/* ── LOADING ── */
+.loading-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(245,242,237,0.9);
+  z-index: 100;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+.loading-overlay.visible { display: flex; }
+
+.loading-spinner {
+  width: 48px;
+  height: 48px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loading-text {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 20px;
+  letter-spacing: 0.2em;
+  color: var(--ink);
+}
+
+.loading-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--ink-light);
+  letter-spacing: 0.15em;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* ── SCENES PREVIEW ── */
+.scenes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.scene-card {
+  background: var(--card);
+  border: 1px solid var(--border2);
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 0;
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+}
+
+.scene-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+
+@media (max-width: 600px) {
+  .scene-card { grid-template-columns: 1fr; }
+}
+
+.scene-img-wrap {
+  position: relative;
+  background: var(--surface2);
+  aspect-ratio: 16/9;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.scene-img-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.scene-img-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-light);
+}
+
+.scene-img-placeholder span {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.scene-gen-btn {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.scene-gen-btn:hover { background: #a03a1a; }
+.scene-gen-btn:disabled { background: var(--ink-light); cursor: not-allowed; }
+
+.scene-body {
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.scene-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.scene-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+  background: rgba(200,80,42,0.08);
+  padding: 2px 8px;
+  border-radius: 2px;
+  white-space: nowrap;
+}
+
+.scene-title-input {
+  border: none;
+  border-bottom: 1px solid var(--border2);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  background: transparent;
+  padding: 2px 4px;
+  color: var(--ink);
+  flex: 1;
+}
+
+.scene-title-input:focus { border-bottom-color: var(--accent); outline: none; }
+
+.scene-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.scene-mini-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--ink-light);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+
+.scene-textarea {
+  font-size: 12px;
+  padding: 6px 8px;
+  min-height: 54px;
+  line-height: 1.5;
+  resize: none;
+}
+
+.scene-timing {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--gold);
+  letter-spacing: 0.08em;
+  align-self: flex-end;
+}
+
+/* ── IMAGE STATUS ── */
+.img-status {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(245,242,237,0.85);
+}
+
+.img-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* ── GENERATE ALL BTN ── */
+.gen-all-bar {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.gen-all-info {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--ink-mid);
+  letter-spacing: 0.08em;
+}
+
+.btn-gen-all {
+  background: var(--gold);
+  color: var(--ink);
+  border: none;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  padding: 8px 24px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-gen-all:hover { background: #9a7a0a; color: #fff; }
+.btn-gen-all:disabled { background: var(--ink-light); color: #fff; cursor: not-allowed; }
+
+/* ── ERROR ── */
+.error-bar {
+  background: rgba(200,80,42,0.06);
+  border: 1px solid rgba(200,80,42,0.25);
+  color: var(--accent);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  letter-spacing: 0.05em;
+  display: none;
+}
+
+.error-bar.visible { display: block; }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--success);
+  color: #fff;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  padding: 10px 20px;
+  z-index: 200;
+  transform: translateY(60px);
+  opacity: 0;
+  transition: all 0.3s;
+}
+
+.toast.show { transform: translateY(0); opacity: 1; }
+
+/* ── DIVIDER ── */
+.divider {
+  border: none;
+  border-top: 1px solid var(--border2);
+  margin: 32px 0;
+}
+
+/* ── INFO BOX ── */
+.info-box {
+  background: rgba(42,108,140,0.06);
+  border-left: 3px solid var(--accent2);
+  padding: 12px 16px;
+  font-size: 12px;
+  color: var(--ink-mid);
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-text" id="loadingText">GENERATING</div>
+  <div class="loading-sub" id="loadingSub">Please wait...</div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <span class="logo-main">C<em>O</em>NTE</span>
+    <span class="logo-sub">Storyboard Generator</span>
+  </div>
+  <button class="api-badge" id="apiBadge" onclick="toggleApiPanel()">⚡ API KEY 未設定</button>
+</header>
+
+<main>
+
+  <!-- API PANEL -->
+  <div class="api-panel visible" id="apiPanel">
+    <div class="form-grid">
+      <div class="field">
+        <label>Gemini API Key</label>
+        <input type="password" id="apiKeyInput" placeholder="AIza..." autocomplete="off">
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-primary" onclick="saveApiKey()">Save</button>
+    </div>
+  </div>
+
+  <!-- ERROR -->
+  <div class="error-bar" id="errorBar"></div>
+
+  <!-- STEP INDICATOR -->
+  <div class="steps">
+    <div class="step active" id="step1">
+      <div class="step-num">1</div>
+      <div class="step-label">案件情報</div>
+    </div>
+    <div class="step-line"></div>
+    <div class="step" id="step2">
+      <div class="step-num">2</div>
+      <div class="step-label">シーン生成</div>
+    </div>
+    <div class="step-line"></div>
+    <div class="step" id="step3">
+      <div class="step-num">3</div>
+      <div class="step-label">画像生成</div>
+    </div>
+    <div class="step-line"></div>
+    <div class="step" id="step4">
+      <div class="step-num">4</div>
+      <div class="step-label">出力</div>
+    </div>
+  </div>
+
+  <!-- PANEL 1: PROJECT INFO -->
+  <div class="panel active" id="panel1">
+    <div class="section-title">案件情報の入力</div>
+    <div class="section-desc">クライアントの案件情報を入力してください。AIがシーン構成を自動生成します。</div>
+
+    <div class="form-grid">
+      <div class="field">
+        <label>制作物タイプ</label>
+        <select id="videoType">
+          <option value="OP">オープニング (OP)</option>
+          <option value="ED">エンディング (ED)</option>
+          <option value="logo">ロゴアニメーション</option>
+          <option value="intro">チャンネルイントロ</option>
+          <option value="transition">トランジション集</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>総尺（秒）</label>
+        <input type="number" id="duration" value="30" min="5" max="180">
+      </div>
+      <div class="field">
+        <label>クライアント名 / チャンネル名</label>
+        <input type="text" id="clientName" placeholder="例: キャンディゲームズ">
+      </div>
+      <div class="field">
+        <label>ジャンル / カテゴリ</label>
+        <input type="text" id="genre" placeholder="例: VTuber ゲーム実況 女性向け">
+      </div>
+    </div>
+
+    <div class="field" style="margin-bottom:16px;">
+      <label>ビジュアルスタイル（複数選択可）</label>
+      <div class="tag-group" id="styleTagGroup">
+        <button class="tag-opt" onclick="toggleTag(this)">パステルポップ</button>
+        <button class="tag-opt" onclick="toggleTag(this)">グリッチ / サイバー</button>
+        <button class="tag-opt" onclick="toggleTag(this)">RPG / ファンタジー</button>
+        <button class="tag-opt" onclick="toggleTag(this)">ミニマル</button>
+        <button class="tag-opt" onclick="toggleTag(this)">ローファイ / 水彩</button>
+        <button class="tag-opt" onclick="toggleTag(this)">ネオン / ダーク</button>
+        <button class="tag-opt" onclick="toggleTag(this)">和風</button>
+        <button class="tag-opt" onclick="toggleTag(this)">スポーティ</button>
+        <button class="tag-opt" onclick="toggleTag(this)">キュート / ポップ</button>
+        <button class="tag-opt" onclick="toggleTag(this)">シネマティック</button>
+      </div>
+    </div>
+
+    <div class="form-grid">
+      <div class="field">
+        <label>メインカラー（キーワード）</label>
+        <input type="text" id="colors" placeholder="例: ピンク・白・水色">
+      </div>
+      <div class="field">
+        <label>シーン数</label>
+        <select id="sceneCount">
+          <option value="4">4シーン</option>
+          <option value="5">5シーン</option>
+          <option value="6" selected>6シーン</option>
+          <option value="8">8シーン</option>
+          <option value="10">10シーン</option>
+        </select>
+      </div>
+      <div class="field full">
+        <label>追加要望・注意事項（任意）</label>
+        <textarea id="notes" placeholder="例: ロゴは最後に大きく表示 / キャラクターは登場しない / BGMはポップ系を想定"></textarea>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-primary" id="btn1" onclick="generateScenes()">シーン構成を生成</button>
+    </div>
+  </div>
+
+  <!-- PANEL 2+3: SCENES -->
+  <div class="panel" id="panel2">
+    <div class="section-title">シーン構成の確認 · 編集</div>
+    <div class="section-desc">AIが生成したシーン構成です。内容を編集してから画像を生成してください。</div>
+
+    <div class="gen-all-bar">
+      <span class="gen-all-info" id="imgProgress">画像未生成</span>
+      <button class="btn-gen-all" id="btnGenAll" onclick="generateAllImages()">✦ 全シーンの画像を生成</button>
+    </div>
+
+    <div class="scenes-list" id="scenesList"></div>
+
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="goPanel(1)">← やり直す</button>
+      <button class="btn-export" id="btnExport" onclick="exportPptx()">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M8 2v8M5 7l3 3 3-3M2 12v1a1 1 0 001 1h10a1 1 0 001-1v-1"/>
+        </svg>
+        PowerPoint で出力
+      </button>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ── STATE ──
+let apiKey = '';
+let scenes = [];
+let projectInfo = {};
+
+// ── INIT ──
+window.onload = () => {
+  const saved = localStorage.getItem('conte_api_key');
+  if (saved) { apiKey = saved; document.getElementById('apiKeyInput').value = saved; setConnected(true); }
+};
+
+function toggleTag(el) { el.classList.toggle('selected'); }
+
+function toggleApiPanel() {
+  document.getElementById('apiPanel').classList.toggle('visible');
+}
+
+function saveApiKey() {
+  const v = document.getElementById('apiKeyInput').value.trim();
+  if (!v) return;
+  apiKey = v;
+  localStorage.setItem('conte_api_key', v);
+  setConnected(true);
+  document.getElementById('apiPanel').classList.remove('visible');
+  showToast('APIキーを保存しました');
+}
+
+function setConnected(ok) {
+  const b = document.getElementById('apiBadge');
+  b.textContent = ok ? '✓ GEMINI CONNECTED' : '⚡ API KEY 未設定';
+  b.className = ok ? 'api-badge connected' : 'api-badge';
+}
+
+function goPanel(n) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(`panel${n}`).classList.add('active');
+  updateSteps(n);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function updateSteps(active) {
+  for (let i = 1; i <= 4; i++) {
+    const el = document.getElementById(`step${i}`);
+    el.className = 'step';
+    if (i < active) el.classList.add('done');
+    else if (i === active) el.classList.add('active');
+  }
+}
+
+// ── GENERATE SCENES ──
+async function generateScenes() {
+  if (!apiKey) {
+    showError('APIキーを設定してください。');
+    document.getElementById('apiPanel').classList.add('visible');
+    return;
+  }
+
+  const type = document.getElementById('videoType').value;
+  const dur = document.getElementById('duration').value;
+  const client = document.getElementById('clientName').value || '未設定';
+  const genre = document.getElementById('genre').value || '未設定';
+  const colors = document.getElementById('colors').value || '未設定';
+  const count = parseInt(document.getElementById('sceneCount').value);
+  const notes = document.getElementById('notes').value || 'なし';
+  const styles = [...document.querySelectorAll('#styleTagGroup .tag-opt.selected')].map(t => t.textContent).join('、') || '未指定';
+
+  projectInfo = { type, dur, client, genre, colors, count, styles, notes };
+
+  const prompt = `あなたはプロの映像ディレクターです。以下の案件情報をもとに、映像絵コンテのシーン構成をJSON形式で生成してください。
+
+## 案件情報
+- 制作物タイプ: ${type}
+- チャンネル名/クライアント: ${client}
+- ジャンル: ${genre}
+- 総尺: ${dur}秒
+- シーン数: ${count}
+- ビジュアルスタイル: ${styles}
+- メインカラー: ${colors}
+- 注意事項: ${notes}
+
+## 出力形式（JSONのみ・他の文章は一切不要）
+{
+  "title": "絵コンテタイトル",
+  "scenes": [
+    {
+      "number": 1,
+      "title": "シーンタイトル（日本語・短め）",
+      "timing": "0:00 - 0:05",
+      "description": "このシーンで何が起きるかの説明（日本語・2〜3文）",
+      "camera": "カメラワーク・構図の指示（日本語・1文）",
+      "imagePrompt": "Stable Diffusion用英語プロンプト（映像フレームのビジュアル描写・スタイル・色・構図を含む・50語程度）"
+    }
+  ]
+}
+
+JSONのみ出力してください。\`\`\`json などのマークダウンは不要です。`;
+
+  setLoading(true, 'シーン構成を生成中', 'Gemini が考えています...');
+
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+
+    let text = data.candidates[0].content.parts[0].text;
+    text = text.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(text);
+    scenes = parsed.scenes;
+
+    renderScenes();
+    goPanel(2);
+    hideError();
+  } catch(e) {
+    showError(`シーン生成エラー: ${e.message}`);
+  } finally {
+    setLoading(false);
+  }
+}
+
+// ── RENDER SCENES ──
+function renderScenes() {
+  const list = document.getElementById('scenesList');
+  list.innerHTML = '';
+  scenes.forEach((sc, i) => {
+    const card = document.createElement('div');
+    card.className = 'scene-card';
+    card.id = `scene-card-${i}`;
+    card.innerHTML = `
+      <div class="scene-img-wrap" id="img-wrap-${i}">
+        <div class="scene-img-placeholder">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1" opacity="0.4">
+            <rect x="2" y="6" width="28" height="20" rx="2"/>
+            <circle cx="10" cy="13" r="3"/>
+            <path d="M2 24l7-7 5 5 4-4 7 7"/>
+          </svg>
+          <span>画像未生成</span>
+        </div>
+        <button class="scene-gen-btn" id="gen-btn-${i}" onclick="generateOneImage(${i})">▶ 生成</button>
+      </div>
+      <div class="scene-body">
+        <div class="scene-header">
+          <span class="scene-num">SCENE ${String(sc.number).padStart(2,'0')}</span>
+          <input class="scene-title-input" id="sc-title-${i}" value="${esc(sc.title)}">
+          <span class="scene-timing">${esc(sc.timing)}</span>
+        </div>
+        <div class="scene-field-row">
+          <div>
+            <div class="scene-mini-label">シーン説明</div>
+            <textarea class="scene-textarea" id="sc-desc-${i}">${esc(sc.description)}</textarea>
+          </div>
+          <div>
+            <div class="scene-mini-label">カメラワーク</div>
+            <textarea class="scene-textarea" id="sc-cam-${i}">${esc(sc.camera)}</textarea>
+          </div>
+        </div>
+        <div>
+          <div class="scene-mini-label">画像生成プロンプト（英語）</div>
+          <textarea class="scene-textarea" id="sc-prompt-${i}" style="min-height:42px;">${esc(sc.imagePrompt)}</textarea>
+        </div>
+      </div>
+    `;
+    list.appendChild(card);
+  });
+  updateImgProgress();
+}
+
+// ── GENERATE IMAGE (single) ──
+async function generateOneImage(idx) {
+  const prompt = document.getElementById(`sc-prompt-${idx}`).value.trim();
+  if (!prompt) return;
+
+  const btn = document.getElementById(`gen-btn-${idx}`);
+  const wrap = document.getElementById(`img-wrap-${idx}`);
+  btn.disabled = true;
+
+  // Show spinner
+  const spinner = document.createElement('div');
+  spinner.className = 'img-status';
+  spinner.innerHTML = '<div class="img-spinner"></div>';
+  wrap.appendChild(spinner);
+
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        instances: [{ prompt: prompt + ', 16:9 widescreen frame, cinematic composition, high quality' }],
+        parameters: { sampleCount: 1, aspectRatio: '16:9' }
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+
+    const b64 = data.predictions[0].bytesBase64Encoded;
+    const mime = data.predictions[0].mimeType || 'image/png';
+    const src = `data:${mime};base64,${b64}`;
+
+    scenes[idx].imageData = src;
+
+    // Replace placeholder with image
+    wrap.innerHTML = `<img src="${src}" alt="scene ${idx+1}">
+      <button class="scene-gen-btn" id="gen-btn-${idx}" onclick="generateOneImage(${idx})">↺ 再生成</button>`;
+
+    updateImgProgress();
+    showToast(`Scene ${idx+1} 画像生成完了`);
+  } catch(e) {
+    wrap.querySelector('.img-status')?.remove();
+    btn.disabled = false;
+    showError(`画像生成エラー (Scene ${idx+1}): ${e.message}`);
+  }
+}
+
+// ── GENERATE ALL IMAGES ──
+async function generateAllImages() {
+  const btn = document.getElementById('btnGenAll');
+  btn.disabled = true;
+  hideError();
+  for (let i = 0; i < scenes.length; i++) {
+    if (!scenes[i].imageData) {
+      await generateOneImage(i);
+      await sleep(600); // rate limit buffer
+    }
+  }
+  btn.disabled = false;
+  showToast('全画像の生成が完了しました');
+}
+
+function updateImgProgress() {
+  const done = scenes.filter(s => s.imageData).length;
+  document.getElementById('imgProgress').textContent = `画像生成: ${done} / ${scenes.length} シーン完了`;
+}
+
+// ── EXPORT PPTX ──
+async function exportPptx() {
+  const btn = document.getElementById('btnExport');
+  btn.disabled = true;
+  setLoading(true, 'PowerPoint を生成中', 'スライドを作成しています...');
+
+  try {
+    const pptx = new PptxGenJS();
+    pptx.layout = 'LAYOUT_16x9';
+
+    // Collect current edits
+    const currentScenes = scenes.map((sc, i) => ({
+      ...sc,
+      title: document.getElementById(`sc-title-${i}`)?.value || sc.title,
+      description: document.getElementById(`sc-desc-${i}`)?.value || sc.description,
+      camera: document.getElementById(`sc-cam-${i}`)?.value || sc.camera,
+    }));
+
+    // ── COVER SLIDE ──
+    const cover = pptx.addSlide();
+    cover.background = { color: '1a1612' };
+    cover.addText('STORYBOARD', {
+      x: 0.5, y: 1.2, w: 9, h: 0.8,
+      fontSize: 36, fontFace: 'Georgia',
+      color: 'f5f2ed', bold: false, align: 'center', charSpacing: 8
+    });
+    cover.addText(projectInfo.client || 'CONTE', {
+      x: 0.5, y: 2.1, w: 9, h: 0.5,
+      fontSize: 18, fontFace: 'Georgia',
+      color: 'c8502a', align: 'center', charSpacing: 4
+    });
+    cover.addText(`${projectInfo.type} / ${projectInfo.dur}sec / ${currentScenes.length} scenes`, {
+      x: 0.5, y: 2.8, w: 9, h: 0.4,
+      fontSize: 11, fontFace: 'Courier New',
+      color: '9a9088', align: 'center', charSpacing: 2
+    });
+    cover.addText(`Generated by CONTE  —  ${new Date().toLocaleDateString('ja-JP')}`, {
+      x: 0.5, y: 4.6, w: 9, h: 0.3,
+      fontSize: 9, fontFace: 'Courier New',
+      color: '5a5248', align: 'center'
+    });
+
+    // ── SCENE SLIDES ──
+    for (let i = 0; i < currentScenes.length; i++) {
+      const sc = currentScenes[i];
+      const slide = pptx.addSlide();
+      slide.background = { color: 'fffdf8' };
+
+      // Top bar
+      slide.addShape(pptx.ShapeType.rect, {
+        x: 0, y: 0, w: 10, h: 0.55,
+        fill: { color: '1a1612' }
+      });
+
+      // Scene number
+      slide.addText(`SCENE ${String(sc.number).padStart(2,'0')}`, {
+        x: 0.25, y: 0.08, w: 1.5, h: 0.38,
+        fontSize: 13, fontFace: 'Courier New',
+        color: 'c8502a', bold: true, charSpacing: 2
+      });
+
+      // Scene title
+      slide.addText(sc.title, {
+        x: 1.9, y: 0.08, w: 5.5, h: 0.38,
+        fontSize: 14, fontFace: 'Georgia',
+        color: 'f5f2ed', align: 'left'
+      });
+
+      // Timing
+      slide.addText(sc.timing, {
+        x: 8.0, y: 0.08, w: 1.8, h: 0.38,
+        fontSize: 11, fontFace: 'Courier New',
+        color: 'b8960c', align: 'right'
+      });
+
+      // Image area (left)
+      if (sc.imageData) {
+        slide.addImage({
+          data: sc.imageData,
+          x: 0.3, y: 0.75, w: 5.2, h: 2.93
+        });
+      } else {
+        slide.addShape(pptx.ShapeType.rect, {
+          x: 0.3, y: 0.75, w: 5.2, h: 2.93,
+          fill: { color: 'e8e2d8' },
+          line: { color: 'd8d0c4', width: 1 }
+        });
+        slide.addText('[ 画像未生成 ]', {
+          x: 0.3, y: 0.75, w: 5.2, h: 2.93,
+          fontSize: 12, fontFace: 'Courier New',
+          color: '9a9088', align: 'center', valign: 'middle'
+        });
+      }
+
+      // Right panel - Description
+      slide.addText('シーン説明', {
+        x: 5.8, y: 0.75, w: 3.9, h: 0.28,
+        fontSize: 8, fontFace: 'Courier New',
+        color: '9a9088', charSpacing: 2
+      });
+      slide.addText(sc.description, {
+        x: 5.8, y: 1.05, w: 3.9, h: 1.1,
+        fontSize: 11, fontFace: 'Meiryo',
+        color: '1a1612', align: 'left', valign: 'top',
+        wrap: true, lineSpacingMultiple: 1.3
+      });
+
+      // Right panel - Camera
+      slide.addShape(pptx.ShapeType.line, {
+        x: 5.8, y: 2.2, w: 3.9, h: 0,
+        line: { color: 'd8d0c4', width: 0.5 }
+      });
+      slide.addText('カメラワーク', {
+        x: 5.8, y: 2.28, w: 3.9, h: 0.28,
+        fontSize: 8, fontFace: 'Courier New',
+        color: '9a9088', charSpacing: 2
+      });
+      slide.addText(sc.camera, {
+        x: 5.8, y: 2.56, w: 3.9, h: 0.8,
+        fontSize: 11, fontFace: 'Meiryo',
+        color: '2a6c8c', align: 'left', valign: 'top',
+        wrap: true, lineSpacingMultiple: 1.3
+      });
+
+      // Bottom bar
+      slide.addShape(pptx.ShapeType.rect, {
+        x: 0, y: 4.85, w: 10, h: 0.65,
+        fill: { color: 'f0ece5' }
+      });
+      slide.addText(`${projectInfo.client || 'CONTE'}  ·  ${projectInfo.type}  ·  ${new Date().toLocaleDateString('ja-JP')}`, {
+        x: 0.3, y: 4.88, w: 8, h: 0.38,
+        fontSize: 9, fontFace: 'Courier New',
+        color: '9a9088'
+      });
+      slide.addText(`${i+1} / ${currentScenes.length}`, {
+        x: 8.5, y: 4.88, w: 1.2, h: 0.38,
+        fontSize: 9, fontFace: 'Courier New',
+        color: '9a9088', align: 'right'
+      });
+    }
+
+    const filename = `CONTE_${(projectInfo.client || 'storyboard').replace(/\s/g,'_')}_${new Date().toISOString().slice(0,10)}.pptx`;
+    await pptx.writeFile({ fileName: filename });
+    showToast('PowerPoint を保存しました');
+    updateSteps(4);
+
+  } catch(e) {
+    showError(`出力エラー: ${e.message}`);
+  } finally {
+    setLoading(false);
+    btn.disabled = false;
+  }
+}
+
+// ── UTILS ──
+function setLoading(on, title='', sub='') {
+  const ov = document.getElementById('loadingOverlay');
+  ov.classList.toggle('visible', on);
+  if (on) {
+    document.getElementById('loadingText').textContent = title;
+    document.getElementById('loadingSub').textContent = sub;
+  }
+}
+
+function showError(msg) {
+  const el = document.getElementById('errorBar');
+  el.textContent = msg;
+  el.classList.add('visible');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function hideError() {
+  document.getElementById('errorBar').classList.remove('visible');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+</script>
+</body>
+</html>
